@@ -38,30 +38,6 @@ $nombreUsuario = isset($_SESSION['usuario_nombre']) ? htmlspecialchars($_SESSION
             overflow: hidden; /* Evita el scroll */
         }
 
-        /* --- Navbar (Más compacta) --- */
-        .navbar {
-            background: var(--card-bg);
-            padding: 12px 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,.03);
-            flex-shrink: 0;
-        }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 700;
-            font-size: 18px;
-        }
-
-        .navbar-brand svg {
-            color: var(--primary);
-            width: 20px; height: 20px;
-        }
-
         .user-controls {
             display: flex;
             align-items: center;
@@ -221,19 +197,7 @@ $nombreUsuario = isset($_SESSION['usuario_nombre']) ? htmlspecialchars($_SESSION
 </head>
 <body>
 
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            RRHH Coltauco
-        </div>
-        <div class="user-controls">
-            <span class="user-name">Hola, <?php echo $nombreUsuario; ?></span>
-            <a href="logout.php" class="btn-logout">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Salir
-            </a>
-        </div>
-    </nav>
+    <?php include 'navbar.php'; ?>
 
     <div class="main-wrapper">
         <div class="container">

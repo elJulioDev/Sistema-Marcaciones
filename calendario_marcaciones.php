@@ -319,7 +319,16 @@ if ($isJson) {
   --mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 html{font-size:14px;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--font);background:var(--bg);color:var(--t1);height: 100vh;overflow: hidden;line-height: 1.45;}
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--t1);
+  height: 100vh;
+  overflow: hidden;
+  line-height: 1.45;
+  display: flex; /* Convierte el body en un contenedor flexible */
+  flex-direction: column; /* Apila el navbar y el contenido verticalmente */
+}
 a{color:inherit;text-decoration:none}
 button{cursor:pointer;font-family:var(--font)}
 ::-webkit-scrollbar{width:6px;height:6px}
@@ -327,8 +336,16 @@ button{cursor:pointer;font-family:var(--font)}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
 
 /* ── App shell ───────────────────────────────────────────── */
-.app{width:100%;max-width:1920px;margin:0 auto;padding: 20px 2%; height: 100vh; display: flex; flex-direction: column}
-
+.app {
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 20px 2%;
+  flex: 1; /* Hace que .app ocupe exactamente el espacio sobrante después del navbar */
+  min-height: 0; /* Previene desbordamientos en flexbox */
+  display: flex;
+  flex-direction: column;
+}
 /* ── Header ──────────────────────────────────────────────── */
 .hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap; flex-shrink: 0}
 .mnav{display:flex;align-items:center;gap:6px}
@@ -644,8 +661,8 @@ tr:hover td{background:var(--s2)}
   .wn{font-size:15px}
 }
 @media(max-width: 900px) {
-    body { height: auto; overflow: visible; }
-    .app { height: auto; display: block; padding: 16px 4% 50px; }
+    body { height: auto; overflow: visible; display: block; }
+    .app { height: auto; display: block; padding: 16px 4% 50px; flex: none; }
     .grid { grid-template-columns: 1fr; display: block; }
     .cc { height: auto; margin-bottom: 20px; overflow-y: visible; }
     .right { height: auto; display: block; }
@@ -654,6 +671,7 @@ tr:hover td{background:var(--s2)}
 </style>
 </head>
 <body>
+  <?php include 'navbar.php'; ?>
 <div class="app" id="app">
 
   <div class="hdr">
