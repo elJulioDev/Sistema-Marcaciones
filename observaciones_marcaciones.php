@@ -249,6 +249,7 @@ foreach ($rows as $k => $r) {
     </style>
 </head>
 <body>
+    <?php include 'navbar.php'; ?>
 <div class="wrap">
     <div class="card">
         <h1>Observaciones de marcaciones</h1>

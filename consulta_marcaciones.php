@@ -330,6 +330,7 @@ if ($rut !== '') {
     </style>
 </head>
 <body>
+    <?php include 'navbar.php'; ?>
 <div class="wrap">
 
     <div class="card">

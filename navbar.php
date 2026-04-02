@@ -10,20 +10,29 @@ $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <style>
     /* Estilos exclusivos y aislados para el navbar global */
+    .global-navbar, .global-navbar * {
+        box-sizing: border-box;
+    }
+    
     .global-navbar {
         background: #ffffff;
-        padding: 12px 2%;
+        padding: 12px 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         box-shadow: 0 2px 4px rgba(0,0,0,.05);
         border-bottom: 1px solid #e5e7eb;
         font-family: 'Figtree', Arial, sans-serif;
-        flex-wrap: wrap;
-        gap: 10px;
-        position: relative;
+        position: sticky;
+        top: 0;
         z-index: 1000;
+        
+        /* Esto evita que el navbar se encoja cuando el body usa flexbox (ej. Calendario) */
+        flex-shrink: 0; 
+        width: 100%;
+        margin: 0;
     }
+    
     .global-navbar .navbar-brand {
         display: flex;
         align-items: center;
@@ -32,18 +41,18 @@ $current_page = basename($_SERVER['PHP_SELF']);
         font-size: 18px;
         color: #1f2937;
         text-decoration: none;
+        white-space: nowrap; /* Evita que el logo se parta en dos líneas */
     }
-    .global-navbar .navbar-brand svg {
-        color: #2563eb;
-        width: 20px;
-        height: 20px;
-    }
+    
     .global-navbar .navbar-links {
         display: flex;
-        gap: 5px;
+        gap: 8px;
         align-items: center;
+        justify-content: center;
+        flex: 1; /* Permite que los enlaces tomen el espacio central */
         flex-wrap: wrap;
     }
+    
     .global-navbar .navbar-links a {
         text-decoration: none;
         color: #4b5563;
@@ -52,25 +61,32 @@ $current_page = basename($_SERVER['PHP_SELF']);
         transition: all 0.2s;
         padding: 8px 12px;
         border-radius: 6px;
+        white-space: nowrap;
     }
+    
     .global-navbar .navbar-links a:hover {
         color: #2563eb;
         background: #f3f4f6;
     }
+    
     .global-navbar .navbar-links a.active {
         color: #2563eb;
         background: #eff6ff;
     }
+    
     .global-navbar .user-controls {
         display: flex;
         align-items: center;
         gap: 16px;
+        white-space: nowrap;
     }
+    
     .global-navbar .user-name {
         font-weight: 600;
         font-size: 14px;
         color: #6b7280;
     }
+    
     .global-navbar .btn-logout {
         background: #fee2e2;
         color: #991b1b;
@@ -84,24 +100,45 @@ $current_page = basename($_SERVER['PHP_SELF']);
         align-items: center;
         gap: 6px;
     }
+    
     .global-navbar .btn-logout:hover {
         background: #fca5a5;
         color: #7f1d1d;
     }
     
-    /* Responsividad para móviles */
+    /* ── Responsividad (Tablets y Móviles) ── */
     @media(max-width: 900px) {
         .global-navbar {
-            flex-direction: column;
+            flex-wrap: wrap; /* Permitimos que salte de línea solo en móvil */
         }
+        
+        .global-navbar .navbar-brand {
+            order: 1; /* Logo a la izquierda */
+        }
+        
+        .global-navbar .user-controls {
+            order: 2; /* Botón salir a la derecha */
+        }
+        
         .global-navbar .navbar-links {
-            justify-content: center;
+            order: 3; /* Enlaces bajan a una nueva línea */
             width: 100%;
-            order: 3;
-            margin-top: 10px;
+            margin-top: 12px;
+            justify-content: center;
         }
+        
         .global-navbar .user-name {
-            display: none;
+            display: none; /* Ocultamos el "Hola, Usuario" por espacio */
+        }
+    }
+    
+    @media(max-width: 480px) {
+        .global-navbar .navbar-links {
+            gap: 4px;
+        }
+        .global-navbar .navbar-links a {
+            padding: 6px 8px;
+            font-size: 13px;
         }
     }
 </style>
