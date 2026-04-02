@@ -19,12 +19,21 @@ if ($rango === 'semana') {
     $lunes = clone $selDate;
     $lunes->modify('-'.($selDOW-1).' days');
 
+    // Calcular el viernes para nombrar el archivo
+    $viernes = clone $lunes;
+    $viernes->modify('+4 days');
+    
+    // Obtener el número de la semana en el año
+    $numSemana = $lunes->format('W'); 
+
     for ($i = 0; $i < 5; $i++) { // Solo 5 días hábiles
         $d = clone $lunes;
         $d->modify("+$i days");
         $diasRevisar[] = $d->format('Y-m-d');
     }
-    $tituloArchivo = 'Inasistencias_Semana_'.$lunes->format('d-m-Y').'.csv';
+    
+    // Nuevo título semanal (Ej: Inasistencias_Sem_14_del_30-03-2026_al_03-04-2026.csv)
+    $tituloArchivo = 'Inasistencias_Sem_'.$numSemana.'_del_'.$lunes->format('d-m-Y').'_al_'.$viernes->format('d-m-Y').'.csv';
 
 } else {
     // Calcular Lunes a Viernes de TODO el mes
@@ -39,7 +48,19 @@ if ($rango === 'semana') {
             $diasRevisar[] = $dt->format('Y-m-d');
         }
     }
-    $tituloArchivo = 'Inasistencias_Mes_'.$mes.'.csv';
+    
+    // Mapear el número del mes a su nombre en español
+    $mesesNombres = [
+        '01'=>'Enero', '02'=>'Febrero', '03'=>'Marzo', '04'=>'Abril', 
+        '05'=>'Mayo', '06'=>'Junio', '07'=>'Julio', '08'=>'Agosto', 
+        '09'=>'Septiembre', '10'=>'Octubre', '11'=>'Noviembre', '12'=>'Diciembre'
+    ];
+    $mesParts = explode('-', $mes);
+    $nombreMes = $mesesNombres[$mesParts[1]];
+    $anio = $mesParts[0];
+    
+    // Nuevo título mensual (Ej: Inasistencias_Mes_Abril_2026.csv)
+    $tituloArchivo = 'Inasistencias_Mes_' . $nombreMes . '_' . $anio . '.csv';
 }
 
 // 1. Obtener la lista base de empleados activos en este mes
