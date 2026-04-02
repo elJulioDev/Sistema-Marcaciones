@@ -1,0 +1,12 @@
+[01-Apr-2026 23:24:09 America/Santiago] PHP Fatal error:  Uncaught exception 'PDOException' with message 'SQLSTATE[HY093]: Invalid parameter number' in /home/coltauco/intranet.coltauco.cl/Marcaciones/observaciones_marcaciones.php:71
+Stack trace:
+#0 /home/coltauco/intranet.coltauco.cl/Marcaciones/observaciones_marcaciones.php(71): PDOStatement->execute(Array)
+#1 {main}
+  thrown in /home/coltauco/intranet.coltauco.cl/Marcaciones/observaciones_marcaciones.php on line 71
+[01-Apr-2026 23:24:20 America/Santiago] PHP Fatal error:  Uncaught exception 'PDOException' with message 'SQLSTATE[HY093]: Invalid parameter number' in /home/coltauco/intranet.coltauco.cl/Marcaciones/observaciones_marcaciones.php:71
+Stack trace:
+#0 /home/coltauco/intranet.coltauco.cl/Marcaciones/observaciones_marcaciones.php(71): PDOStatement->execute(Array)
+#1 {main}
+  thrown in /home/coltauco/intranet.coltauco.cl/Marcaciones/observaciones_marcaciones.php on line 71
+[01-Apr-2026 23:42:01 America/Santiago] PHP Fatal error:  Call to undefined function nombre_dia_es() in /home/coltauco/intranet.coltauco.cl/Marcaciones/consulta_marcaciones.php on line 398
+[01-Apr-2026 23:42:04 America/Santiago] PHP Fatal error:  Call to undefined function nombre_dia_es() in /home/coltauco/intranet.coltauco.cl/Marcaciones/consulta_marcaciones.php on line 398
