@@ -99,6 +99,17 @@ if (!$registro) {
     die('Registro o empleado no encontrado.');
 }
 
+// --- NUEVO CÓDIGO PARA EL BOTÓN VOLVER ---
+$return_url = 'observaciones_marcaciones.php';
+if (isset($_POST['return_url']) && !empty($_POST['return_url'])) {
+    $return_url = $_POST['return_url'];
+} elseif (isset($_GET['return_url']) && !empty($_GET['return_url'])) {
+    $return_url = $_GET['return_url'];
+} elseif (isset($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], 'editar_marcacion_resumen.php') === false) {
+    $return_url = $_SERVER['HTTP_REFERER'];
+}
+// -----------------------------------------
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $entrada_post = isset($_POST['entrada']) ? trim($_POST['entrada']) : '';
     $salida_post = isset($_POST['salida']) ? trim($_POST['salida']) : '';
@@ -375,6 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <form method="post">
+            <input type="hidden" name="return_url" value="<?php echo h($return_url); ?>">
             <div class="form-grid">
                 <div>
                     <label for="entrada">Entrada</label>
@@ -424,7 +436,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="actions">
                 <button type="submit">Guardar cambios</button>
-                <a href="observaciones_marcaciones.php" class="btn btn-secondary">Volver</a>
+                <a href="<?php echo h($return_url); ?>" class="btn btn-secondary">Volver</a>
             </div>
         </form>
     </div>
