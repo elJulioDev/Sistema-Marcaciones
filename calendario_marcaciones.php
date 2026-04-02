@@ -863,57 +863,66 @@ function renderWeek(d){
 
 /* ── Render: day view ─────────────────────────────────────── */
 function renderDay(d){
-  var p=d.presentes, a=d.ausentes, h='';
-  h+='<div class="dh"><h2>'+esc(d.fechaDisplay)+'</h2>';
-  h+='<div class="chips"><span class="chip chg">'+p.length+' presentes</span>';
-  h+='<span class="chip chr">'+a.length+' ausentes</span></div></div>';
-  h+='<div class="tabs">';
-  h+='<button class="tab on" data-tab="tp">Presentes ('+p.length+')</button>';
-  h+='<button class="tab"    data-tab="ta">Ausentes ('+a.length+')</button>';
-  h+='</div>';
-  h+='<div class="dcard-body">';
+  var p = d.presentes, a = d.ausentes, h = '';
+  
+  // NUEVO: Lógica para aplicar el filtro de inasistencias en el día
+  var tabActiva = 'tp';
+  if (S.ausencias) {
+      p = []; // Vaciamos los presentes si solo se quieren ver inasistencias
+      tabActiva = 'ta'; // Activamos la pestaña de ausentes por defecto
+  }
+
+  h += '<div class="dh"><h2>' + esc(d.fechaDisplay) + '</h2>';
+  h += '<div class="chips"><span class="chip chg">' + d.presentes.length + ' presentes</span>';
+  h += '<span class="chip chr">' + a.length + ' ausentes</span></div></div>';
+  
+  h += '<div class="tabs">';
+  h += '<button class="tab ' + (tabActiva === 'tp' ? 'on' : '') + '" data-tab="tp">Presentes (' + p.length + ')</button>';
+  h += '<button class="tab ' + (tabActiva === 'ta' ? 'on' : '') + '" data-tab="ta">Ausentes (' + a.length + ')</button>';
+  h += '</div>';
+  h += '<div class="dcard-body">';
 
   // Presentes
-  h+='<div id="tp">';
+  h += '<div id="tp" style="' + (tabActiva === 'tp' ? '' : 'display:none') + '">';
   if(!p.length){
-    h+='<div class="empty">Sin marcaciones para este día o que coincidan con el filtro.</div>';
+    h += '<div class="empty">Sin marcaciones para este día o restringido por el filtro.</div>';
   } else {
-    h+='<div class="tw"><table><thead><tr>';
-    h+='<th>Nombre</th><th>Dpto.</th><th class="tc">Marcas</th>';
-    h+='<th>Entrada</th><th>Salida</th><th>Total</th>';
-    h+='<th>Estado</th><th>Obs.</th><th></th></tr></thead><tbody>';
+    h += '<div class="tw"><table><thead><tr>';
+    h += '<th>Nombre</th><th>Dpto.</th><th class="tc">Marcas</th>';
+    h += '<th>Entrada</th><th>Salida</th><th>Total</th>';
+    h += '<th>Estado</th><th>Obs.</th><th></th></tr></thead><tbody>';
     p.forEach(function(r){
-      h+='<tr>';
-      h+='<td class="tn">'+esc(r.nombre)+(+r.editado_manual?'<span class="edot" title="Editado manualmente"></span>':'')+'</td>';
-      h+='<td class="td2">'+esc(r.dpto)+'</td>';
-      h+='<td class="tc tm">'+r.cantidad_marcaciones+'</td>';
-      h+='<td class="tm">'+t5(r.entrada)+'</td>';
-      h+='<td class="tm">'+t5(r.salida)+'</td>';
-      h+='<td class="tt">'+t5(r.total_horas)+'</td>';
-      h+='<td><span class="badge '+badgeCls(r.estado)+'">'+esc(r.estado)+'</span></td>';
-      h+='<td class="to">'+esc(r.observacion||'')+'</td>';
-      h+='<td><a href="editar_marcacion_resumen.php?id='+r.id+'" class="be">Editar</a></td>';
-      h+='</tr>';
+      h += '<tr>';
+      h += '<td class="tn">' + esc(r.nombre) + (+r.editado_manual ? '<span class="edot" title="Editado manualmente"></span>' : '') + '</td>';
+      h += '<td class="td2">' + esc(r.dpto) + '</td>';
+      h += '<td class="tc tm">' + r.cantidad_marcaciones + '</td>';
+      h += '<td class="tm">' + t5(r.entrada) + '</td>';
+      h += '<td class="tm">' + t5(r.salida) + '</td>';
+      h += '<td class="tt">' + t5(r.total_horas) + '</td>';
+      h += '<td><span class="badge ' + badgeCls(r.estado) + '">' + esc(r.estado) + '</span></td>';
+      h += '<td class="to">' + esc(r.observacion || '') + '</td>';
+      h += '<td><a href="editar_marcacion_resumen.php?id=' + r.id + '" class="be">Editar</a></td>';
+      h += '</tr>';
     });
-    h+='</tbody></table></div>';
+    h += '</tbody></table></div>';
   }
-  h+='</div>';
+  h += '</div>';
 
   // Ausentes
-  h+='<div id="ta" style="display:none">';
+  h += '<div id="ta" style="' + (tabActiva === 'ta' ? '' : 'display:none') + '">';
   if(!a.length){
-    h+='<div class="empty">'+(p.length?'Sin ausencias detectadas o restringido por filtro.':'Sin datos para comparar.')+'</div>';
+    h += '<div class="empty">' + (d.presentes.length ? 'Sin ausencias detectadas o restringido por filtro.' : 'Sin datos para comparar.') + '</div>';
   } else {
-    h+='<div class="aug">';
+    h += '<div class="aug">';
     a.forEach(function(r){
-      h+='<div class="auc"><div class="aun">'+esc(r.nombre)+'</div><div class="aum">'+esc(r.dpto)+' · '+esc(r.numero)+'</div></div>';
+      h += '<div class="auc"><div class="aun">' + esc(r.nombre) + '</div><div class="aum">' + esc(r.dpto) + ' · ' + esc(r.numero) + '</div></div>';
     });
-    h+='</div>';
+    h += '</div>';
   }
-  h+='</div>';
+  h += '</div>';
 
-  h+='</div>';
-  elCard.innerHTML=h;
+  h += '</div>';
+  elCard.innerHTML = h;
   bindTabs();
 }
 
