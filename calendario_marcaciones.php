@@ -200,7 +200,7 @@ if ($modo === 'semana') {
     }
 
     $stmtM = $pdo->prepare("
-        SELECT fecha, rut_base, nombre, dpto, numero,
+        SELECT id, fecha, rut_base, nombre, dpto, numero,
                entrada, salida, total_horas, cantidad_marcaciones, estado
         FROM marcaciones_resumen
         WHERE $whereM ORDER BY nombre ASC, fecha ASC
@@ -650,6 +650,44 @@ tr:hover td{background:var(--s2)}
 .tgl-btn.active .tgl-box { background:var(--red); }
 .tgl-btn.active .tgl-box::after { transform:translateX(14px); }
 
+/* ── Efecto Hover para días ausentes ─────────────────────── */
+.td-absent {
+  position: relative;
+  overflow: hidden;
+}
+.td-absent .normal-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  transition: opacity 0.2s;
+}
+/* Agregamos !important y flex-direction:row para evitar conflictos con .mcl a */
+.td-absent a.hover-btn {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex !important; 
+  flex-direction: row !important; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 4px;
+  background: var(--blue) !important; 
+  color: #ffffff !important; 
+  text-decoration: none;
+  opacity: 0; 
+  transition: opacity 0.2s, background 0.2s; 
+  font-size: 11px; 
+  font-weight: 700;
+  border-radius: 6px;
+}
+.td-absent:hover .normal-content { opacity: 0; }
+.td-absent:hover a.hover-btn { opacity: 1; }
+/* Efecto extra cuando pasas el mouse justo sobre el botón (azul más oscuro) */
+.td-absent a.hover-btn:hover {
+  background: #1d4ed8 !important; 
+}
+
 /* ── Mobile ──────────────────────────────────────────────── */
 @media(max-width:480px){
   .mnav h1{min-width:140px;font-size:18px}
@@ -997,19 +1035,45 @@ function renderSemana(d){
         var c=rd[w.fecha]||null;
         if(c){
           var cc=cellCls(c.estado);
-          h+='<td class="mcl '+cc+'">';
-          h+='<a data-fecha="'+w.fecha+'" data-modo="dia">';
+          // 1. Le agregamos la clase td-absent a la celda
+          h+='<td class="mcl '+cc+' td-absent">';
+          
+          // 2. Le agregamos la clase normal-content al enlace con las horas
+          h+='<a class="normal-content" data-fecha="'+w.fecha+'" data-modo="dia" title="Ver detalle del día" style="cursor:pointer; text-decoration:none;">';
           h+='<span class="ct">'+t5(c.entrada)+'</span>';
           h+='<span class="cs">→</span>';
           h+='<span class="ct">'+t5(c.salida)+'</span>';
           if(c.total_horas) h+='<span class="ctot">'+t5(c.total_horas)+'</span>';
-          h+='</a></td>';
+          h+='</a>';
+
+          // 3. Agregamos el botón flotante de Editar (que envía el c.id del registro existente)
+          var editUrl = 'editar_marcacion_resumen.php?id=' + c.id;
+          h+='<a href="'+editUrl+'" class="hover-btn" title="Editar marcación">';
+          h+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>';
+          h+='Editar</a>';
+
+          h+='</td>';
         } else {
+          // URL para crear marcación enviando rut y fecha
+          var editUrl = 'editar_marcacion_resumen.php?rut=' + emp.rut + '&fecha=' + w.fecha;
+          
           if(i < 5 && S.ausencias){
-             h+='<td class="mcl mer" style="background:var(--rdg);"><span class="ct" style="color:var(--red);">FALTÓ</span></td>';
+             h+='<td class="mcl mer td-absent" style="background:var(--rdg);">';
+             // Lo volvimos un <a> con data-fecha y data-modo para que el sistema reconozca el clic
+             h+='<a class="normal-content" data-fecha="'+w.fecha+'" data-modo="dia" style="cursor:pointer; text-decoration:none;">';
+             h+='<span class="ct" style="color:var(--red);">FALTÓ</span></a>';
           } else {
-             h+='<td class="mcl mem"><span class="ct">—</span></td>';
+             h+='<td class="mcl mem td-absent">';
+             // Igual aquí, lo volvemos un <a>
+             h+='<a class="normal-content" data-fecha="'+w.fecha+'" data-modo="dia" style="cursor:pointer; text-decoration:none;">';
+             h+='<span class="ct">—</span></a>';
           }
+          
+          // Botón oculto que aparece con el hover
+          h+='<a href="'+editUrl+'" class="hover-btn" title="Agregar marcación">';
+          h+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>';
+          h+='Editar</a>';
+          h+='</td>';
         }
       });
       h+='</tr>';

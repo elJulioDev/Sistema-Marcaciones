@@ -44,19 +44,59 @@ function normalizar_hora($hora){
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id <= 0) {
-    die('ID no válido.');
+$rut = isset($_GET['rut']) ? trim($_GET['rut']) : '';
+$fecha = isset($_GET['fecha']) ? trim($_GET['fecha']) : '';
+
+if ($id <= 0 && ($rut === '' || $fecha === '')) {
+    die('ID o parámetros no válidos.');
 }
 
 $mensaje = '';
 $error = '';
+$registro = null;
 
-$stmt = $pdo->prepare("SELECT * FROM marcaciones_resumen WHERE id = :id LIMIT 1");
-$stmt->execute(array(':id' => $id));
-$registro = $stmt->fetch();
+if ($id > 0) {
+    // Si viene un ID directo, lo buscamos
+    $stmt = $pdo->prepare("SELECT * FROM marcaciones_resumen WHERE id = :id LIMIT 1");
+    $stmt->execute(array(':id' => $id));
+    $registro = $stmt->fetch();
+} else {
+    // Si no hay ID, buscamos si ya se creó un registro para ese RUT y fecha
+    $stmt = $pdo->prepare("SELECT * FROM marcaciones_resumen WHERE rut_base = :rut AND fecha = :fecha LIMIT 1");
+    $stmt->execute(array(':rut' => $rut, ':fecha' => $fecha));
+    $registro = $stmt->fetch();
+    
+    if ($registro) {
+        $id = $registro['id'];
+    } else {
+        // No existe el registro (Faltó). Extraemos los datos básicos del empleado
+        $stmtEmp = $pdo->prepare("SELECT nombre, dpto, numero FROM marcaciones_resumen WHERE rut_base = :rut ORDER BY fecha DESC LIMIT 1");
+        $stmtEmp->execute(array(':rut' => $rut));
+        $emp = $stmtEmp->fetch();
+        
+        if ($emp) {
+            // Creamos un registro virtual en memoria para mostrar en el formulario
+            $registro = array(
+                'id' => 0,
+                'rut_base' => $rut,
+                'nombre' => $emp['nombre'],
+                'dpto' => $emp['dpto'],
+                'numero' => $emp['numero'],
+                'fecha' => $fecha,
+                'entrada' => null,
+                'salida' => null,
+                'total_horas' => null,
+                'cantidad_marcaciones' => 0,
+                'estado' => 'ERROR',
+                'observacion' => '',
+                'editado_manual' => 0
+            );
+        }
+    }
+}
 
 if (!$registro) {
-    die('Registro no encontrado.');
+    die('Registro o empleado no encontrado.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -103,26 +143,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $total_horas = null;
         }
 
-        $update = $pdo->prepare("
-            UPDATE marcaciones_resumen
-            SET
-                entrada = :entrada,
-                salida = :salida,
-                total_horas = :total_horas,
-                estado = :estado,
-                observacion = :observacion,
-                editado_manual = 1
-            WHERE id = :id
-        ");
+        if ($id > 0) {
+            // Si ya existe en la base de datos, lo actualizamos
+            $update = $pdo->prepare("
+                UPDATE marcaciones_resumen
+                SET
+                    entrada = :entrada,
+                    salida = :salida,
+                    total_horas = :total_horas,
+                    estado = :estado,
+                    observacion = :observacion,
+                    editado_manual = 1
+                WHERE id = :id
+            ");
 
-        $update->execute(array(
-            ':entrada' => $entrada,
-            ':salida' => $salida,
-            ':total_horas' => $total_horas,
-            ':estado' => $estado,
-            ':observacion' => $observacion,
-            ':id' => $id
-        ));
+            $update->execute(array(
+                ':entrada' => $entrada,
+                ':salida' => $salida,
+                ':total_horas' => $total_horas,
+                ':estado' => $estado,
+                ':observacion' => $observacion,
+                ':id' => $id
+            ));
+        } else {
+            // Si no existe (era una ausencia), insertamos un nuevo registro
+            $insert = $pdo->prepare("
+                INSERT INTO marcaciones_resumen
+                (rut_base, numero, nombre, dpto, fecha, entrada, salida, total_horas, cantidad_marcaciones, estado, observacion, editado_manual)
+                VALUES
+                (:rut_base, :numero, :nombre, :dpto, :fecha, :entrada, :salida, :total_horas, 0, :estado, :observacion, 1)
+            ");
+            
+            $insert->execute(array(
+                ':rut_base' => $registro['rut_base'],
+                ':numero' => $registro['numero'],
+                ':nombre' => $registro['nombre'],
+                ':dpto' => $registro['dpto'],
+                ':fecha' => $registro['fecha'],
+                ':entrada' => $entrada,
+                ':salida' => $salida,
+                ':total_horas' => $total_horas,
+                ':estado' => $estado,
+                ':observacion' => $observacion
+            ));
+            
+            // Recuperamos el ID recién creado para que pueda volver a cargar correctamente la vista
+            $id = $pdo->lastInsertId();
+            $registro['id'] = $id;
+        }
 
         $stmt = $pdo->prepare("SELECT * FROM marcaciones_resumen WHERE id = :id LIMIT 1");
         $stmt->execute(array(':id' => $id));
