@@ -336,6 +336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+    <?php include 'navbar.php'; ?>
 <div class="wrap">
     <div class="card">
         <h1>Editar marcación resumen</h1>
