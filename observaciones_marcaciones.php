@@ -96,16 +96,31 @@ foreach ($rows as $k => $r) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         *{box-sizing:border-box}
-        body{
-            margin:0;
-            font-family:Arial, Helvetica, sans-serif;
-            background:#f4f7fb;
-            color:#1f2937;
+        body {
+            margin: 0;
+            font-family: 'Figtree', Arial, Helvetica, sans-serif; /* Unificamos fuente */
+            background: #f4f7fb;
+            color: #1f2937;
+            
+            /* -- MAGIA PARA EL SCROLL DEBAJO DEL NAVBAR -- */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Congela la ventana principal */
         }
-        .wrap{
-            max-width:1500px;
-            margin:0 auto;
-            padding:24px;
+
+        /* Nuevo contenedor que tendrá la barra de desplazamiento */
+        .main-scroll {
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .wrap {
+            /* (Mantén el contenido que ya tenías en tu clase wrap) */
+            max-width: 1500px; /* (o el ancho que ya tengas en cada archivo) */
+            margin: 0 auto;
+            padding: 24px;
         }
         .card{
             background:#fff;
@@ -250,6 +265,7 @@ foreach ($rows as $k => $r) {
 </head>
 <body>
     <?php include 'navbar.php'; ?>
+<div class="main-scroll">
 <div class="wrap">
     <div class="card">
         <h1>Observaciones de marcaciones</h1>
@@ -365,6 +381,7 @@ foreach ($rows as $k => $r) {
             </table>
         </div>
     </div>
+</div>
 </div>
 </body>
 </html>
