@@ -10,6 +10,20 @@ function h($v){
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
+function nombre_dia_es($fechaYmd){
+    $dias = array(
+        'Sunday' => 'Domingo',
+        'Monday' => 'Lunes',
+        'Tuesday' => 'Martes',
+        'Wednesday' => 'Miércoles',
+        'Thursday' => 'Jueves',
+        'Friday' => 'Viernes',
+        'Saturday' => 'Sábado'
+    );
+    $diaIngles = date('l', strtotime($fechaYmd));
+    return isset($dias[$diaIngles]) ? $dias[$diaIngles] : '';
+}
+
 // --- VARIABLES DE PAGINACIÓN ---
 $registrosPorPagina = 25;
 $paginaActual = isset($_GET['p']) && is_numeric($_GET['p']) ? (int)$_GET['p'] : 1;
@@ -225,24 +239,27 @@ function urlPagina($numPagina) {
         table{
             width:100%;
             border-collapse:collapse;
-            min-width:1450px;
+            min-width:950px; /* Reducido de 1450px para evitar el scroll horizontal */
         }
         th, td{
-            padding:10px;
+            padding:8px 6px; /* Menos espacio entre las celdas */
             border-bottom:1px solid #e5e7eb;
             text-align:left;
             vertical-align:middle;
-            font-size:14px;
+            font-size:13px; /* Texto ligeramente más pequeño */
         }
         th{
             background:#f9fafb;
+            font-size:12px; 
+            white-space:nowrap; /* Evita que los encabezados se separen en dos líneas */
         }
         tbody tr:hover { background-color: #f8fafc; }
+        
         .badge{
             display:inline-block;
-            padding:6px 10px;
+            padding:4px 8px; /* Insignias de estado más compactas */
             border-radius:999px;
-            font-size:12px;
+            font-size:11px;
             font-weight:bold;
             white-space:nowrap;
         }
@@ -250,40 +267,47 @@ function urlPagina($numPagina) {
         .badge-obs{background:#dbeafe;color:#1d4ed8}
         .badge-inc{background:#fef3c7;color:#92400e}
         .badge-err{background:#fee2e2;color:#991b1b}
+        
         .small{
             color:#6b7280;
-            font-size:12px;
+            font-size:11px;
+            line-height:1.2;
+            display:inline-block;
         }
+        
         .btn-editar{
             display:inline-block;
-            padding:8px 12px;
+            padding:6px 10px;
             background:#2563eb;
             color:#fff;
             text-decoration:none;
-            border-radius:8px;
-            font-size:14px;
+            border-radius:6px;
+            font-size:12px;
+            white-space:nowrap; /* Evita que el botón de editar se deforme */
         }
         .btn-editar:hover{
             background:#1d4ed8;
         }
+        
         .empty{
             padding:22px;
             text-align:center;
             color:#6b7280;
         }
+        
         .marcas{
             display:flex;
             flex-direction:row;
             flex-wrap: wrap;
-            gap:4px;
+            gap:3px; /* Píldoras de hora más juntas */
         }
         .marca-item{
             display:inline-block;
             background:#f3f4f6;
             border:1px solid #e5e7eb;
-            border-radius:8px;
-            padding:5px 8px;
-            font-size: 13px;
+            border-radius:6px;
+            padding:3px 5px; /* Píldoras más compactas */
+            font-size: 11px;
             font-family: monospace;
             text-align:center;
         }
@@ -398,7 +422,10 @@ function urlPagina($numPagina) {
                 <?php else: ?>
                     <?php foreach ($rows as $r): ?>
                         <tr>
-                            <td><?php echo h(date('d/m/Y', strtotime($r['fecha']))); ?></td>
+                            <td>
+                                <strong><?php echo h(nombre_dia_es($r['fecha'])); ?></strong><br>
+                                <?php echo h(date('d/m/Y', strtotime($r['fecha']))); ?>
+                            </td>
                             <td>
                                 <strong><?php echo h($r['nombre']); ?></strong><br>
                                 <span class="small">RUT base: <?php echo h($r['rut_base']); ?></span>
