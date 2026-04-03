@@ -1,95 +1,132 @@
 <?php
 session_start();
+require_once __DIR__ . '/inc/db.php';
 
-$host = 'localhost';
-$db   = 'coltauco_RRHH';
-$user = 'coltauco';
-$pass = 'M.c0lt4uc0.66';
-$charset = 'utf8mb4';
-
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-
-try {
-    $pdo = new PDO($dsn, $user, $pass);
-} catch (Exception $e) {
-    die("Error BD");
+// Si el usuario ya tiene sesión iniciada, redirigir al panel principal
+if (isset($_SESSION['usuario_id'])) {
+    header("Location: panel.php");
+    exit;
 }
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     $rut = trim($_POST['rut']);
-    $password = trim($_POST['password']);
+    $password = trim($_POST['clave']); // Usamos 'clave' del input para validar el password
 
-    $stmt = $pdo->prepare("SELECT * FROM usuarios_sistema WHERE rut = :rut AND activo = 1 LIMIT 1");
-    $stmt->execute([':rut' => $rut]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC); 
+    try {
+        $pdo = db();
+        $stmt = $pdo->prepare("SELECT * FROM usuarios_sistema WHERE rut = :rut AND activo = 1 LIMIT 1");
+        $stmt->execute([':rut' => $rut]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC); 
 
-    if ($user && password_verify($password, $user['password'])) {
+        if ($user && password_verify($password, $user['password'])) {
+            // Asignar variables de sesión del sistema de marcaciones
+            $_SESSION['usuario_id'] = $user['id'];
+            $_SESSION['usuario_nombre'] = $user['nombre'];
+            $_SESSION['usuario_rol'] = $user['rol'];
 
-        $_SESSION['usuario_id'] = $user['id'];
-        $_SESSION['usuario_nombre'] = $user['nombre'];
-        $_SESSION['usuario_rol'] = $user['rol'];
-
-        header("Location: panel.php");
-        exit;
-
-    } else {
-        $error = "Usuario o contraseña incorrectos";
+            header("Location: panel.php");
+            exit;
+        } else {
+            $error = "Usuario o contraseña incorrectos.";
+        }
+    } catch (Exception $e) {
+        $error = "Error al conectar con la base de datos.";
     }
 }
+
+$year = date('Y');
 ?>
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="es">
 <head>
-<meta charset="utf-8">
-<title>Login</title>
-<style>
-body{
-    font-family:Arial;
-    background:#f4f6f9;
-}
-.box{
-    width:350px;
-    margin:100px auto;
-    background:#fff;
-    padding:30px;
-    border-radius:10px;
-    box-shadow:0 5px 20px rgba(0,0,0,.1);
-}
-input{
-    width:100%;
-    padding:12px;
-    margin-bottom:10px;
-}
-button{
-    width:100%;
-    padding:12px;
-    background:#2563eb;
-    color:#fff;
-    border:0;
-}
-.error{
-    color:red;
-    margin-bottom:10px;
-}
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar Sesión | Sistema de Marcaciones</title>
+    <link rel="stylesheet" href="static/css/login.css">
 </head>
 <body>
 
-<div class="box">
-<h2>Ingreso sistema</h2>
+<div class="login-container">
 
-<?php if($error): ?>
-<div class="error"><?php echo $error; ?></div>
-<?php endif; ?>
+    <div class="institution-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        Municipalidad de Coltauco
+    </div>
 
-<form method="post">
-    <input type="text" name="rut" placeholder="RUT">
-    <input type="password" name="password" placeholder="Contraseña">
-    <button>Ingresar</button>
-</form>
+    <div class="login-card">
+
+        <div class="card-header">
+            <h1>Sistema de Marcaciones</h1>
+            <p>Acceso para gestión de Recursos Humanos</p>
+        </div>
+
+        <div class="card-body">
+
+            <?php if ($error): ?>
+            <div class="alert alert-error">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <?php echo htmlspecialchars($error); ?>
+            </div>
+            <?php endif; ?>
+
+            <form method="post" autocomplete="off">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="rut">RUT Funcionario</label>
+                        <div class="input-wrap">
+                            <span class="input-icon">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </span>
+                            <input id="rut" class="form-control" type="text" name="rut"
+                                   placeholder="12345678-9" required
+                                   value="<?php echo $error ? htmlspecialchars(isset($_POST['rut']) ? $_POST['rut'] : '') : ''; ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clave">Contraseña</label>
+                        <div class="input-wrap">
+                            <span class="input-icon">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </span>
+                            <input id="clave" class="form-control" type="password" name="clave"
+                                   placeholder="••••••••" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <button type="submit" class="btn-submit">
+                    Ingresar al Sistema
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14"></path>
+                        <path d="m12 5 7 7-7 7"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <div class="card-footer">
+            &copy; <?php echo $year; ?> <strong>Depto. de Informática</strong> — Municipalidad de Coltauco
+        </div>
+
+    </div>
 </div>
 
 </body>
