@@ -10,6 +10,13 @@ function h($v){
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
+// --- VARIABLES DE PAGINACIÓN ---
+$registrosPorPagina = 25;
+$paginaActual = isset($_GET['p']) && is_numeric($_GET['p']) ? (int)$_GET['p'] : 1;
+if ($paginaActual < 1) {
+    $paginaActual = 1;
+}
+
 $filtroEstado = isset($_GET['estado']) ? trim($_GET['estado']) : '';
 $q = isset($_GET['q']) ? trim($_GET['q']) : '';
 $periodo = isset($_GET['periodo']) ? trim($_GET['periodo']) : '';
@@ -43,6 +50,27 @@ if ($periodo !== '') {
     $params[':periodo'] = $periodo;
 }
 
+// 1. Obtener la cantidad TOTAL de registros para calcular las páginas
+$sqlCount = "SELECT COUNT(*) FROM marcaciones_resumen mr";
+if (!empty($where)) {
+    $sqlCount .= " WHERE " . implode(' AND ', $where);
+}
+$stmtCount = $pdo->prepare($sqlCount);
+$stmtCount->execute($params);
+$totalRegistros = (int)$stmtCount->fetchColumn();
+
+// Calcular total de páginas
+$totalPaginas = ceil($totalRegistros / $registrosPorPagina);
+
+// Evitar que el usuario ingrese una página mayor al máximo
+if ($paginaActual > $totalPaginas && $totalPaginas > 0) {
+    $paginaActual = $totalPaginas;
+}
+
+// Calcular el OFFSET (desde dónde empieza a traer registros)
+$offset = ($paginaActual - 1) * $registrosPorPagina;
+
+// 2. Consulta principal con LIMIT y OFFSET
 $sql = "
     SELECT
         mr.id,
@@ -67,11 +95,14 @@ if (!empty($where)) {
 }
 
 $sql .= " ORDER BY mr.fecha DESC, mr.nombre ASC";
+// Aplicar paginación
+$sql .= " LIMIT " . (int)$registrosPorPagina . " OFFSET " . (int)$offset;
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Extraer el detalle de marcaciones SOLAMENTE para los 25 registros de esta página
 $stmtDetalle = $pdo->prepare("
     SELECT hora
     FROM marcaciones
@@ -87,6 +118,13 @@ foreach ($rows as $k => $r) {
     ));
     $rows[$k]['detalle_marcaciones'] = $stmtDetalle->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// Helper para construir enlaces de paginación manteniendo los filtros
+function urlPagina($numPagina) {
+    $query = $_GET;
+    $query['p'] = $numPagina;
+    return '?' . http_build_query($query);
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -98,18 +136,15 @@ foreach ($rows as $k => $r) {
         *{box-sizing:border-box}
         body {
             margin: 0;
-            font-family: 'Figtree', Arial, Helvetica, sans-serif; /* Unificamos fuente */
+            font-family: 'Figtree', Arial, Helvetica, sans-serif;
             background: #f4f7fb;
             color: #1f2937;
-            
-            /* -- MAGIA PARA EL SCROLL DEBAJO DEL NAVBAR -- */
             height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* Congela la ventana principal */
+            overflow: hidden;
         }
 
-        /* Nuevo contenedor que tendrá la barra de desplazamiento */
         .main-scroll {
             flex: 1;
             overflow-y: auto;
@@ -117,8 +152,7 @@ foreach ($rows as $k => $r) {
         }
 
         .wrap {
-            /* (Mantén el contenido que ya tenías en tu clase wrap) */
-            max-width: 1500px; /* (o el ancho que ya tengas en cada archivo) */
+            max-width: 1500px;
             margin: 0 auto;
             padding: 24px;
         }
@@ -127,6 +161,7 @@ foreach ($rows as $k => $r) {
             border-radius:16px;
             padding:24px;
             box-shadow:0 10px 30px rgba(0,0,0,.08);
+            margin-bottom: 24px;
         }
         h1{
             margin:0 0 18px;
@@ -196,12 +231,13 @@ foreach ($rows as $k => $r) {
             padding:10px;
             border-bottom:1px solid #e5e7eb;
             text-align:left;
-            vertical-align:top;
+            vertical-align:middle;
             font-size:14px;
         }
         th{
             background:#f9fafb;
         }
+        tbody tr:hover { background-color: #f8fafc; }
         .badge{
             display:inline-block;
             padding:6px 10px;
@@ -237,7 +273,8 @@ foreach ($rows as $k => $r) {
         }
         .marcas{
             display:flex;
-            flex-direction:column;
+            flex-direction:row;
+            flex-wrap: wrap;
             gap:4px;
         }
         .marca-item{
@@ -246,20 +283,53 @@ foreach ($rows as $k => $r) {
             border:1px solid #e5e7eb;
             border-radius:8px;
             padding:5px 8px;
-            width:max-content;
-            min-width:58px;
+            font-size: 13px;
+            font-family: monospace;
             text-align:center;
         }
+
+        /* --- ESTILOS DE PAGINACIÓN --- */
+        .pagination-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 24px;
+            gap: 12px;
+        }
+        .pagination {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .pagination a, .pagination span {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            color: #4b5563;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            transition: all 0.15s ease;
+        }
+        .pagination a:hover {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        .pagination .active {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+        }
+        .pagination-info {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px){
-            .wrap{
-                padding:14px;
-            }
-            .card{
-                padding:16px;
-            }
-            .filters input[type="text"]{
-                min-width:100%;
-            }
+            .wrap{ padding:14px; }
+            .card{ padding:16px; }
+            .filters input[type="text"]{ min-width:100%; }
         }
     </style>
 </head>
@@ -335,7 +405,7 @@ foreach ($rows as $k => $r) {
                             </td>
                             <td><?php echo h($r['dpto']); ?></td>
                             <td><?php echo h($r['numero']); ?></td>
-                            <td><?php echo (int)$r['cantidad_marcaciones']; ?></td>
+                            <td style="text-align:center;"><?php echo (int)$r['cantidad_marcaciones']; ?></td>
                             <td>
                                 <div class="marcas">
                                     <?php if (!empty($r['detalle_marcaciones'])): ?>
@@ -347,8 +417,8 @@ foreach ($rows as $k => $r) {
                                     <?php endif; ?>
                                 </div>
                             </td>
-                            <td><?php echo ($r['entrada'] ? h(substr($r['entrada'], 0, 5)) : '-'); ?></td>
-                            <td><?php echo ($r['salida'] ? h(substr($r['salida'], 0, 5)) : '-'); ?></td>
+                            <td><strong><?php echo ($r['entrada'] ? h(substr($r['entrada'], 0, 5)) : '-'); ?></strong></td>
+                            <td><strong><?php echo ($r['salida'] ? h(substr($r['salida'], 0, 5)) : '-'); ?></strong></td>
                             <td><?php echo ($r['total_horas'] ? h(substr($r['total_horas'], 0, 5)) : '-'); ?></td>
                             <td>
                                 <?php if ($r['estado'] === 'OK'): ?>
@@ -365,7 +435,7 @@ foreach ($rows as $k => $r) {
                             <td>
                                 <?php if ((int)$r['editado_manual'] === 1): ?>
                                     <span class="small">
-                                        Sí<br><?php echo h($r['updated_at']); ?>
+                                        Sí<br><?php echo h(date('d/m H:i', strtotime($r['updated_at']))); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="small">No</span>
@@ -380,6 +450,39 @@ foreach ($rows as $k => $r) {
                 </tbody>
             </table>
         </div>
+
+        <?php if ($totalRegistros > 0): ?>
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Mostrando registros <strong><?php echo $offset + 1; ?></strong> al <strong><?php echo min($offset + $registrosPorPagina, $totalRegistros); ?></strong> de un total de <strong><?php echo $totalRegistros; ?></strong>
+                </div>
+
+                <?php if ($totalPaginas > 1): ?>
+                    <div class="pagination">
+                        <?php if ($paginaActual > 1): ?>
+                            <a href="<?php echo urlPagina(1); ?>" title="Primera página">&laquo; Primera</a>
+                            <a href="<?php echo urlPagina($paginaActual - 1); ?>" title="Página anterior">&lsaquo; Anterior</a>
+                        <?php endif; ?>
+
+                        <?php
+                        $inicioVentana = max(1, $paginaActual - 2);
+                        $finVentana = min($totalPaginas, $paginaActual + 2);
+
+                        for ($i = $inicioVentana; $i <= $finVentana; $i++): ?>
+                            <a href="<?php echo urlPagina($i); ?>" class="<?php echo ($i === $paginaActual) ? 'active' : ''; ?>">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+
+                        <?php if ($paginaActual < $totalPaginas): ?>
+                            <a href="<?php echo urlPagina($paginaActual + 1); ?>" title="Página siguiente">Siguiente &rsaquo;</a>
+                            <a href="<?php echo urlPagina($totalPaginas); ?>" title="Última página">Última &raquo;</a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+        
     </div>
 </div>
 </div>
