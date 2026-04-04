@@ -129,7 +129,13 @@ $stmtP = $pdo->prepare($sqlP); $stmtP->execute($paramsP);
 $presentes = $stmtP->fetchAll(PDO::FETCH_ASSOC);
 
 /* ─── ausentes (day view) ────────────────────────────────── */
-$sqlA = "SELECT DISTINCT rut_base,nombre,dpto,numero FROM marcaciones_resumen WHERE fecha >= :m_start AND fecha < :m_end AND rut_base NOT IN (SELECT rut_base FROM marcaciones_resumen WHERE fecha=:f)";
+$sqlA = "SELECT DISTINCT rut_base,nombre,dpto,numero FROM marcaciones_resumen 
+         WHERE fecha >= :m_start AND fecha < :m_end 
+           AND rut_base IS NOT NULL
+           AND rut_base NOT IN (
+               SELECT rut_base FROM marcaciones_resumen 
+               WHERE fecha = :f AND rut_base IS NOT NULL
+           )";
 $paramsA = array(':m_start' => $mesInicioSQL, ':m_end' => $mesFinSQL, ':f' => $fechaSel);
 if ($f_dpto !== '') { $sqlA .= " AND dpto = :dpto"; $paramsA[':dpto'] = $f_dpto; }
 if ($f_q !== '') {
@@ -183,9 +189,12 @@ if ($modo === 'semana') {
     uasort($tmpEmps, function($a,$b){ return strcmp($a['nombre'],$b['nombre']); });
     $matrizEmps = array_values($tmpEmps);
 
-    $stmtRutsSem = $pdo->prepare("SELECT DISTINCT rut_base FROM marcaciones_resumen WHERE fecha IN ($ph)");
+    $stmtRutsSem = $pdo->prepare("SELECT DISTINCT rut_base FROM marcaciones_resumen WHERE fecha IN ($ph) AND rut_base IS NOT NULL");
     $stmtRutsSem->execute($fechasSem);
-    $todosRutsSem = $stmtRutsSem->fetchAll(PDO::FETCH_COLUMN);
+    $todosRutsSem = array_values(array_filter(
+        $stmtRutsSem->fetchAll(PDO::FETCH_COLUMN),
+        function($rut){ return $rut !== null && $rut !== ''; }
+    ));
 
     $whereAS = "fecha >= ? AND fecha < ?"; $paramsAS = array($mesInicioSQL, $mesFinSQL);
     if (!empty($todosRutsSem)) {
@@ -253,15 +262,18 @@ if ($modo === 'mes') {
     uasort($tmpEmpsM, function($a,$b){ return strcmp($a['nombre'],$b['nombre']); });
     $matrizEmpsMes = array_values($tmpEmpsM);
 
-    $stmtRutsMes = $pdo->prepare("SELECT DISTINCT rut_base FROM marcaciones_resumen WHERE fecha >= ? AND fecha < ?");
+    $stmtRutsMes = $pdo->prepare("SELECT DISTINCT rut_base FROM marcaciones_resumen WHERE fecha >= ? AND fecha < ? AND rut_base IS NOT NULL");
     $stmtRutsMes->execute([$mesInicioSQL, $mesFinSQL]);
-    $todosRutsConMes = $stmtRutsMes->fetchAll(PDO::FETCH_COLUMN);
+    $todosRutsConMes = array_values(array_filter(
+        $stmtRutsMes->fetchAll(PDO::FETCH_COLUMN),
+        function($rut){ return $rut !== null && $rut !== ''; }
+    ));
 
     if (empty($todosRutsConMes)) {
         $ausentesMes = [];
     } else {
         $phAus      = implode(',', array_fill(0, count($todosRutsConMes), '?'));
-        $whereAusM  = "rut_base NOT IN ($phAus)";
+        $whereAusM  = "rut_base IS NOT NULL AND rut_base NOT IN ($phAus)";
         $paramsAusM = $todosRutsConMes;
 
         if ($f_dpto !== '') { $whereAusM  .= " AND dpto = ?"; $paramsAusM[] = $f_dpto; }
