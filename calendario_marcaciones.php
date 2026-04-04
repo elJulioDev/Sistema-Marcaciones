@@ -664,9 +664,18 @@ function renderDay(d){
     var tabActiva='tp';
     if(S.ausencias){ p=[]; tabActiva='ta'; }
 
-    h+='<div class="dh"><h2>'+esc(d.fechaDisplay)+'</h2>';
-    h+='<div class="chips"><span class="chip chg">'+d.presentes.length+' presentes</span>';
-    h+='<span class="chip chr">'+a.length+' ausentes</span></div></div>';
+    // Nuevo encabezado con KPIs estilo 'Mes'
+    h += '<div class="mes-summary-hdr" style="flex-shrink:0; justify-content: flex-start; gap: 20px; padding-bottom: 16px;">';
+    h += '<div style="display:flex; flex-direction:column; gap:8px;">';
+    h += '<h2>'+esc(d.fechaDisplay)+'</h2>';
+    h += '</div>';
+
+    h += '<div class="mes-kpis" style="margin-left: auto;">';
+    h += '<div class="mes-kpi"><div class="kv">'+(d.presentes.length + a.length)+'</div><div class="kl">Total Empleados</div></div>';
+    h += '<div class="mes-kpi"><div class="kv" style="color:var(--grn)">'+d.presentes.length+'</div><div class="kl">Asistencias</div></div>';
+    h += '<div class="mes-kpi"><div class="kv" style="color:var(--red)">'+a.length+'</div><div class="kl">Faltas</div></div>';
+    h += '</div></div>';
+
     h+='<div class="tabs">';
     h+='<button class="tab '+(tabActiva==='tp'?'on':'')+'" data-tab="tp">Presentes ('+p.length+')</button>';
     h+='<button class="tab '+(tabActiva==='ta'?'on':'')+'" data-tab="ta">Ausentes ('+a.length+')</button>';
@@ -722,10 +731,34 @@ function renderSemana(d){
             return false;
         });
     }
-    h+='<div class="dh"><h2>Semana '+d.numSemana+' · '+esc(d.mesLabel)+'</h2>';
-    h+='<div class="chips"><span class="chip chg">'+emps.length+' con marcaciones</span>';
-    if(aus.length) h+='<span class="chip chr">'+aus.length+' sin marcaciones</span>';
-    h+='</div></div>';
+
+    // Calcular Asistencias y Faltas reales para la semana
+    var totalPresencias = 0;
+    var totalFaltas = 0;
+    emps.forEach(function(emp){
+        sem.forEach(function(w){
+            if(w.fecha > d.hoy) return; // No sumar los días futuros
+            var c = mdata[emp.rut] && mdata[emp.rut][w.fecha];
+            if(c){ 
+                totalPresencias++; 
+            } else if(!w.fin){ 
+                totalFaltas++; // Solo contamos faltas de Lunes a Viernes (!w.fin)
+            }
+        });
+    });
+
+    // Nuevo encabezado con KPIs estilo 'Mes'
+    h += '<div class="mes-summary-hdr" style="flex-shrink:0; justify-content: flex-start; gap: 20px; padding-bottom: 16px;">';
+    h += '<div style="display:flex; flex-direction:column; gap:8px;">';
+    h += '<h2>Semana '+d.numSemana+' · '+esc(d.mesLabel)+'</h2>';
+    h += '</div>';
+
+    h += '<div class="mes-kpis" style="margin-left: auto;">';
+    h += '<div class="mes-kpi"><div class="kv">'+emps.length+'</div><div class="kl">Empleados listados</div></div>';
+    h += '<div class="mes-kpi"><div class="kv" style="color:var(--grn)">'+totalPresencias+'</div><div class="kl">Asistencias</div></div>';
+    h += '<div class="mes-kpi"><div class="kv" style="color:var(--red)">'+totalFaltas+'</div><div class="kl">Faltas (Lun-Vie)</div></div>';
+    if(aus.length) h += '<div class="mes-kpi"><div class="kv" style="color:var(--t3)">'+aus.length+'</div><div class="kl">Inactivos</div></div>';
+    h += '</div></div>';
 
     if(!emps.length && !aus.length){
         h+='<div class="empty">Sin registros que coincidan con los filtros.</div>';
