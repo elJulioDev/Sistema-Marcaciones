@@ -71,7 +71,9 @@ $stmtD = $pdo->prepare("
     SELECT fecha,
            COUNT(*) AS total,
            SUM(CASE WHEN estado='OK' THEN 1 ELSE 0 END) AS ok_cnt,
-           SUM(CASE WHEN estado<>'OK' THEN 1 ELSE 0 END) AS issue_cnt
+           SUM(CASE WHEN estado='INCOMPLETO' THEN 1 ELSE 0 END) AS inc_cnt,
+           SUM(CASE WHEN estado='OBSERVADO' THEN 1 ELSE 0 END) AS obs_cnt,
+           SUM(CASE WHEN estado='ERROR' THEN 1 ELSE 0 END) AS err_cnt
     FROM marcaciones_resumen WHERE $whereD GROUP BY fecha
 ");
 $stmtD->execute($paramsD);
@@ -377,7 +379,7 @@ if ($isJson) {
         <div class="li"><span class="lb" style="background:var(--amb)"></span>Incidencias</div>
         <div class="li"><span class="lb" style="background:var(--sky)"></span>Observado</div>
         <div class="li"><span class="lb" style="background:var(--red)"></span>Error</div>
-        <div class="li"><span class="lb" style="background:rgba(37,99,235,.25);border:1px solid rgba(37,99,235,.4)"></span>Semana sel.</div>
+        <div class="li"><span class="lb" style="background:rgba(37,99,235,.25);border:1px solid rgba(37,99,235,.4)"></span>Seleccion.</div>
       </div>
     </div>
 
@@ -604,23 +606,32 @@ function renderCal(d){
     labels.forEach(function(l,i){ h+='<div class="cdh'+(i>=5?' wk':'')+'">'+l+'</div>'; });
     for(var i=1;i<d.primerDOW;i++) h+='<div class="cd empty"></div>';
     var yy=+d.mes.split('-')[0], mm=+d.mes.split('-')[1];
+    
     for(var day=1;day<=d.diasEnMes;day++){
         var pad = day<10?'0'+day:''+day;
         var f   = d.mes+'-'+pad;
         var dt  = new Date(yy,mm-1,day);
         var dow = dt.getDay(); var dowM = dow===0?7:dow;
         var wk  = dowM>=6;
-        var sel = f===d.fechaSel;
-        var hoy = f===d.hoy;
-        var inW = !!weekDates[f];
+        
+        // MODIFICACIÓN: Si estamos en modo mes, no hay "un día" fuertemente seleccionado, 
+        // sino que todo el mes pasa a estar resaltado en azul claro (como la semana).
+        var esModoMes = (d.modo === 'mes');
+        var sel = (f === d.fechaSel) && !esModoMes; 
+        var hoy = (f === d.hoy);
+        var inW = !!weekDates[f] || esModoMes; 
+        
         var dot = d.dots[f]||null;
         var cls = 'cd'+(wk?' wk':'')+(sel?' sel':'')+(hoy?' hoy':'')+(inW&&!sel?' in-week':'');
+        
         h+='<div class="'+cls+'" data-fecha="'+f+'">';
         h+='<span class="dn">'+day+'</span>';
         if(dot){
             h+='<div class="dr">';
-            if(+dot.ok_cnt>0)    h+='<span class="dot dok"></span>';
-            if(+dot.issue_cnt>0) h+='<span class="dot dis"></span>';
+            if(+dot.ok_cnt>0)  h+='<span class="dot dok"></span>';
+            if(+dot.inc_cnt>0) h+='<span class="dot dis"></span>';
+            if(+dot.obs_cnt>0) h+='<span class="dot dobs"></span>';
+            if(+dot.err_cnt>0) h+='<span class="dot derr"></span>';
             h+='</div><span class="dc">'+dot.total+'</span>';
         }
         h+='</div>';
@@ -650,8 +661,12 @@ function renderWeek(d){
         h+='<div class="'+cls+'" data-fecha="'+w.fecha+'">';
         h+='<span class="wl">'+w.label+'</span><span class="wn">'+w.num+'</span>';
         if(w.dot){
-            h+='<span class="wdot'+(+w.dot.issue_cnt>0?' hi':'')+'"></span>';
-            h+='<span class="wt">'+w.dot.total+'</span>';
+            h+='<div class="dr" style="margin: 2px 0;">';
+            if(+w.dot.ok_cnt>0)  h+='<span class="dot dok"></span>';
+            if(+w.dot.inc_cnt>0) h+='<span class="dot dis"></span>';
+            if(+w.dot.obs_cnt>0) h+='<span class="dot dobs"></span>';
+            if(+w.dot.err_cnt>0) h+='<span class="dot derr"></span>';
+            h+='</div><span class="wt">'+w.dot.total+'</span>';
         }
         h+='</div>';
     });

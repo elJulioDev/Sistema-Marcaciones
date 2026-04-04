@@ -67,7 +67,10 @@ button{cursor:pointer;font-family:var(--font)}
 .dn{font-size:13px;font-weight:700;color:var(--t1);line-height:1;font-family:var(--mono)}
 .dr{display:flex;gap:3px;justify-content:center}
 .dot{width:5px;height:5px;border-radius:50%}
-.dok{background:var(--grn)}.dis{background:var(--amb)}
+.dok{background:var(--grn)}
+.dis{background:var(--amb)}
+.dobs{background:var(--sky)}
+.derr{background:var(--red)}
 .dc{font-size:10px;font-weight:600;color:var(--t2);font-family:var(--mono);line-height:1}
 
 /* ── Stats & Legend ──────────────────────────────────────── */
