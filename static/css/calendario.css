@@ -35,7 +35,7 @@ button{cursor:pointer;font-family:var(--font)}
 
 /* ── Semana/Mes badge ────────────────────────────────────── */
 .week-badge{display:none;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--r2);background:var(--blg);border:1px solid rgba(37,99,235,.25);color:var(--blue);font-size:13px;font-weight:600;white-space:nowrap;}
-.week-badge .wbi{font-family:var(--mono);font-weight:700;font-size:14px;}
+.week-badge .wbi{font-family:var(--mono);font-weight:700;font-size:12px;}
 .week-badge .wbd{color:var(--t2);font-size:12px;}
 .mes-badge{display:none;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--r2);background:rgba(5,150,105,.1);border:1px solid rgba(5,150,105,.25);color:var(--grn);font-size:13px;font-weight:600;white-space:nowrap;}
 .mes-badge svg{flex-shrink:0;}
