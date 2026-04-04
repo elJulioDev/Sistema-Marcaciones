@@ -2,25 +2,32 @@
 require_once __DIR__ . '/inc/db.php';
 require_once __DIR__ . '/auth.php';
 date_default_timezone_set('America/Santiago');
+@set_time_limit(300);          // 5 min para archivos grandes
+@ini_set('memory_limit', '256M');
 $pdo = db();
 
 // ═══════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════
-function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
-function limpiar_numero($v) { return preg_replace('/[^0-9K]/', '', strtoupper(trim((string)$v))); }
-function obtener_rut_base($n) { return preg_replace('/[^0-9]/', '', (string)$n); }
+function h($v)             { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+function limpiar_numero($v){ return preg_replace('/[^0-9K]/', '', strtoupper(trim((string)$v))); }
+function obtener_rut_base($n){ return preg_replace('/[^0-9]/', '', (string)$n); }
 function parsear_linea($linea) {
     $linea = trim((string)$linea);
     if ($linea === '') return false;
     $p = preg_split("/\t+/", $linea);
     if (count($p) < 4) return false;
-    return ['dpto'=>trim($p[0]),'nombre'=>trim($p[1]),'numero'=>trim($p[2]),'fecha_hora'=>trim($p[3])];
+    return [
+        'dpto'      => trim($p[0]),
+        'nombre'    => trim($p[1]),
+        'numero'    => trim($p[2]),
+        'fecha_hora'=> trim($p[3]),
+    ];
 }
 function mins_to_time($m) { return sprintf('%02d:%02d:00', floor($m/60), $m%60); }
 
 // ═══════════════════════════════════════════════════════════════════
-// BATCH INSERT IGNORE — rendimiento masivo vs INSERT individual
+// BATCH INSERT IGNORE — lote aumentado a 500 filas
 // ═══════════════════════════════════════════════════════════════════
 function insertar_lote($pdo, $lote, $idImp) {
     if (empty($lote)) return 0;
@@ -37,66 +44,106 @@ function insertar_lote($pdo, $lote, $idImp) {
     }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    return $stmt->rowCount(); // Filas realmente insertadas (IGNORE omite duplicados)
+    return $stmt->rowCount();
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// RECALCULAR RESUMEN — solo los pares (rut_base, fecha) afectados
-// en lugar de recalcular TODOS los registros del sistema.
+// PRE-FILTRADO DE DUPLICADOS EN MEMORIA
+// ═══════════════════════════════════════════════════════════════════
+function prefiltrar_duplicados($pdo, $validos) {
+    if (empty($validos)) return ['nuevos' => [], 'omitidos' => 0];
+
+    $CHUNK    = 400;
+    $allHashes = array_map(function($r){ return $r['hash']; }, $validos);
+    $existentes = [];
+
+    for ($i = 0; $i < count($allHashes); $i += $CHUNK) {
+        $chunk = array_slice($allHashes, $i, $CHUNK);
+        $ph    = implode(',', array_fill(0, count($chunk), '?'));
+        $stmt  = $pdo->prepare("SELECT hash_registro FROM marcaciones WHERE hash_registro IN ($ph)");
+        $stmt->execute($chunk);
+        while ($h = $stmt->fetchColumn()) {
+            $existentes[$h] = true;
+        }
+    }
+
+    $nuevos = [];
+    foreach ($validos as $row) {
+        if (!isset($existentes[$row['hash']])) {
+            $nuevos[] = $row;
+        }
+    }
+
+    return [
+        'nuevos'   => $nuevos,
+        'omitidos' => count($validos) - count($nuevos),
+    ];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RECALCULAR RESUMEN — VERSIÓN BULK OPTIMIZADA
 // ═══════════════════════════════════════════════════════════════════
 function recalcular_parcial($pdo, $pares) {
     if (empty($pares)) return 0;
 
-    $stmtM = $pdo->prepare(
-        "SELECT hora FROM marcaciones
-         WHERE rut_base=? AND fecha=?
-         ORDER BY hora ASC, id ASC"
-    );
-    $stmtE = $pdo->prepare(
-        "SELECT numero, nombre, dpto
-         FROM marcaciones WHERE rut_base=? AND fecha=? LIMIT 1"
-    );
-    $stmtU = $pdo->prepare("
-        INSERT INTO marcaciones_resumen
-            (rut_base,numero,nombre,dpto,fecha,entrada,salida,total_horas,
-             cantidad_marcaciones,estado,observacion,editado_manual)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,0)
-        ON DUPLICATE KEY UPDATE
-            numero=VALUES(numero), nombre=VALUES(nombre), dpto=VALUES(dpto),
-            cantidad_marcaciones=VALUES(cantidad_marcaciones),
-            entrada      = IF(editado_manual=1, entrada,      VALUES(entrada)),
-            salida       = IF(editado_manual=1, salida,       VALUES(salida)),
-            total_horas  = IF(editado_manual=1, total_horas,  VALUES(total_horas)),
-            estado       = IF(editado_manual=1, estado,       VALUES(estado)),
-            observacion  = IF(editado_manual=1, observacion,  VALUES(observacion))
-    ");
+    $CHUNK_PARES = 200;   
+    $allHoras    = [];    
+    $empMap      = [];    
 
-    $total = 0;
+    foreach (array_chunk($pares, $CHUNK_PARES) as $chunk) {
+        $inPairs   = implode(',', array_fill(0, count($chunk), '(?,?)'));
+        $flatParams = [];
+        foreach ($chunk as $par) {
+            $flatParams[] = $par['rut_base'];
+            $flatParams[] = $par['fecha'];
+        }
+
+        $s = $pdo->prepare(
+            "SELECT rut_base, fecha, hora
+             FROM marcaciones
+             WHERE (rut_base, fecha) IN ($inPairs)
+             ORDER BY rut_base, fecha, hora ASC, id ASC"
+        );
+        $s->execute($flatParams);
+        while ($row = $s->fetch(PDO::FETCH_ASSOC)) {
+            $allHoras[$row['rut_base'].'|'.$row['fecha']][] = $row['hora'];
+        }
+
+        $s = $pdo->prepare(
+            "SELECT rut_base, fecha, numero, nombre, dpto
+             FROM marcaciones
+             WHERE (rut_base, fecha) IN ($inPairs)
+             GROUP BY rut_base, fecha"
+        );
+        $s->execute($flatParams);
+        while ($emp = $s->fetch(PDO::FETCH_ASSOC)) {
+            $empMap[$emp['rut_base'].'|'.$emp['fecha']] = $emp;
+        }
+    }
+
+    $resumenRows = [];
     foreach ($pares as $par) {
-        $rut   = $par['rut_base'];
-        $fecha = $par['fecha'];
+        $key = $par['rut_base'].'|'.$par['fecha'];
+        if (!isset($empMap[$key])) continue;
 
-        $stmtE->execute([$rut, $fecha]);
-        $emp = $stmtE->fetch(PDO::FETCH_ASSOC);
-        if (!$emp) continue;
-
-        $stmtM->execute([$rut, $fecha]);
-        $marcas = $stmtM->fetchAll(PDO::FETCH_ASSOC);
-        $n = count($marcas);
+        $emp    = $empMap[$key];
+        $marcas = isset($allHoras[$key]) ? $allHoras[$key] : [];
+        $n      = count($marcas);
 
         $entrada = $salida = $totalH = null;
-        $estado = 'OK'; $obs = '';
+        $estado  = 'OK';
+        $obs     = '';
 
-        if ($n > 0) $entrada = $marcas[0]['hora'];
+        if ($n > 0) $entrada = $marcas[0];
 
         if ($n === 1) {
             $estado = 'INCOMPLETO';
             $obs    = 'Solo existe una marcación en el día.';
         } elseif ($n >= 2) {
-            $salida = $marcas[$n-1]['hora'];
-            $ts1    = strtotime($fecha.' '.$entrada);
-            $ts2    = strtotime($fecha.' '.$salida);
-            $dif    = intval(($ts2-$ts1)/60);
+            $salida = $marcas[$n - 1];
+            $dif    = intval(
+                (strtotime($par['fecha'].' '.$salida) - strtotime($par['fecha'].' '.$entrada)) / 60
+            );
             if ($dif < 0) {
                 $estado = 'ERROR';
                 $obs    = 'La salida calculada es anterior a la entrada.';
@@ -109,13 +156,44 @@ function recalcular_parcial($pdo, $pares) {
             }
         }
 
-        $stmtU->execute([
-            $rut, $emp['numero'], $emp['nombre'], $emp['dpto'],
-            $fecha, $entrada, $salida, $totalH, $n, $estado, $obs
-        ]);
-        $total++;
+        $resumenRows[] = [
+            $par['rut_base'], $emp['numero'], $emp['nombre'], $emp['dpto'],
+            $par['fecha'], $entrada, $salida, $totalH, $n, $estado, $obs,
+        ];
     }
-    return $total;
+
+    if (empty($resumenRows)) return 0;
+
+    $upsertTpl = "INSERT INTO marcaciones_resumen
+        (rut_base,numero,nombre,dpto,fecha,entrada,salida,total_horas,
+         cantidad_marcaciones,estado,observacion,editado_manual)
+        VALUES %s
+        ON DUPLICATE KEY UPDATE
+            numero               = VALUES(numero),
+            nombre               = VALUES(nombre),
+            dpto                 = VALUES(dpto),
+            cantidad_marcaciones = VALUES(cantidad_marcaciones),
+            entrada     = IF(editado_manual=1, entrada,     VALUES(entrada)),
+            salida      = IF(editado_manual=1, salida,      VALUES(salida)),
+            total_horas = IF(editado_manual=1, total_horas, VALUES(total_horas)),
+            estado      = IF(editado_manual=1, estado,      VALUES(estado)),
+            observacion = IF(editado_manual=1, observacion, VALUES(observacion))";
+
+    foreach (array_chunk($resumenRows, 100) as $chunk) {
+        $ph     = implode(',', array_fill(0, count($chunk), '(?,?,?,?,?,?,?,?,?,?,?,0)'));
+        $params = [];
+        foreach ($chunk as $row) {
+            foreach ($row as $val) {
+                $params[] = $val;
+            }
+        }
+        $pdo->prepare(sprintf($upsertTpl, $ph))->execute($params);
+        
+        // CUIDADO DEL SERVIDOR: Micropausa de 100ms para no saturar BD durante actualizaciones
+        usleep(100000); 
+    }
+
+    return count($resumenRows);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -123,26 +201,26 @@ function recalcular_parcial($pdo, $pares) {
 // ═══════════════════════════════════════════════════════════════════
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'importar') {
 
-    // Desactivar toda la amortiguación de salida
     while (ob_get_level() > 0) ob_end_clean();
     ob_implicit_flush(true);
 
     header('Content-Type: application/x-ndjson; charset=utf-8');
     header('Cache-Control: no-cache, no-store, must-revalidate');
-    header('X-Accel-Buffering: no'); // Desactiva buffer en nginx
+    header('X-Accel-Buffering: no');
 
     $emit = function($data) {
         echo json_encode($data, JSON_UNESCAPED_UNICODE) . "\n";
         @flush();
     };
 
-    // ── Validar archivo ──
+    $t0 = microtime(true);
+
     if (!isset($_FILES['archivo']) || !is_uploaded_file($_FILES['archivo']['tmp_name'])) {
-        $emit(['phase'=>'error','message'=>'No se recibió ningún archivo.']); exit;
+        $emit(['phase' => 'error', 'message' => 'No se recibió ningún archivo.']); exit;
     }
     $ext = strtolower(pathinfo($_FILES['archivo']['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['txt','csv'])) {
-        $emit(['phase'=>'error','message'=>'Solo se permiten archivos .txt o .csv.']); exit;
+    if (!in_array($ext, ['txt', 'csv'])) {
+        $emit(['phase' => 'error', 'message' => 'Solo se permiten archivos .txt o .csv.']); exit;
     }
 
     $nombreArchivo = $_FILES['archivo']['name'];
@@ -151,22 +229,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
     $obsImp        = isset($_POST['observacion']) ? trim($_POST['observacion']) : '';
     $creadoPor     = isset($_SESSION['usuario_id']) ? (int)$_SESSION['usuario_id'] : null;
 
-    // ── Fase 1: Leer archivo ──
-    $emit(['phase'=>'parsing','progress'=>5,'message'=>'Leyendo archivo...']);
+    $emit(['phase' => 'parsing', 'progress' => 5, 'message' => 'Leyendo archivo...']);
 
     $lineas = file($tmp, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     if (!$lineas || count($lineas) <= 1) {
-        $emit(['phase'=>'error','message'=>'El archivo está vacío o no contiene datos válidos.']); exit;
+        $emit(['phase' => 'error', 'message' => 'El archivo está vacío o no contiene datos válidos.']); exit;
     }
 
     $totalBruto = count($lineas) - 1;
-    $emit(['phase'=>'parsing','progress'=>12,'message'=>"Analizando $totalBruto líneas...",'total'=>$totalBruto]);
+    $emit(['phase' => 'parsing', 'progress' => 10, 'message' => "Analizando $totalBruto líneas...", 'total' => $totalBruto]);
 
-    // ── Fase 2: Parsear y validar cada línea ──
     $validos = []; $invalidos = 0; $primera = true;
 
     foreach ($lineas as $linea) {
-        if ($primera) { $primera = false; continue; } // Saltar cabecera
+        if ($primera) { $primera = false; continue; }
 
         $f = parsear_linea($linea);
         if (!$f) { $invalidos++; continue; }
@@ -189,94 +265,146 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['ac
         $hash  = md5(strtoupper($dpto).'|'.strtoupper($nombre).'|'.$numero.'|'.$fh);
 
         $validos[] = [
-            'dpto'=>$dpto,'nombre'=>$nombre,'numero'=>$numero,
-            'rut_base'=>$rut,'fecha_hora'=>$fh,'fecha'=>$fecha,'hora'=>$hora,'hash'=>$hash
+            'dpto'      => $dpto, 'nombre' => $nombre, 'numero' => $numero,
+            'rut_base'  => $rut, 'fecha_hora' => $fh,
+            'fecha'     => $fecha, 'hora' => $hora, 'hash' => $hash,
         ];
     }
 
     $nValidos = count($validos);
-    $emit(['phase'=>'parsed','progress'=>28,'validos'=>$nValidos,'invalidos'=>$invalidos,
-           'message'=>"$nValidos válidos · $invalidos inválidos"]);
+    $emit(['phase' => 'parsed', 'progress' => 22, 'validos' => $nValidos,
+           'invalidos' => $invalidos, 'message' => "$nValidos válidos · $invalidos inválidos"]);
 
     if ($nValidos === 0) {
-        $emit(['phase'=>'error','message'=>"No se encontraron filas válidas ($invalidos líneas descartadas)."]); exit;
+        $emit(['phase' => 'error', 'message' => "No se encontraron filas válidas ($invalidos líneas descartadas)."]); exit;
     }
 
-    // ── Fase 3: Inserción en lotes ──
-    $pdo->beginTransaction();
+    $emit(['phase' => 'dedup', 'progress' => 28, 'message' => 'Consultando duplicados en base de datos...']);
 
+    $preResult  = prefiltrar_duplicados($pdo, $validos);
+    $nuevos     = $preResult['nuevos'];
+    $dupMemoria = $preResult['omitidos'];
+    $nNuevos    = count($nuevos);
+
+    $emit([
+        'phase'   => 'dedup',
+        'progress'=> 38,
+        'predup'  => $dupMemoria,
+        'nuevos'  => $nNuevos,
+        'message' => $nNuevos > 0
+            ? "$nNuevos registros nuevos · $dupMemoria duplicados ya omitidos"
+            : "Todos los registros ya existen en la base de datos",
+    ]);
+
+    $pdo->beginTransaction();
     try {
-        // Registro de importación
+        $pdo->exec("SET SESSION foreign_key_checks=0");
+
         $stmtI = $pdo->prepare("
             INSERT INTO marcaciones_importaciones
-            (nombre_archivo,periodo,observacion,total_lineas,total_insertadas,total_duplicadas,total_invalidas,creado_por)
+                (nombre_archivo,periodo,observacion,total_lineas,
+                 total_insertadas,total_duplicadas,total_invalidas,creado_por)
             VALUES(?,?,?,0,0,0,0,?)
         ");
-        $stmtI->execute([$nombreArchivo, ($periodo ?: null), ($obsImp ?: null), ($creadoPor ?: null)]);
+        $stmtI->execute([
+            $nombreArchivo,
+            ($periodo  ?: null),
+            ($obsImp   ?: null),
+            ($creadoPor?: null),
+        ]);
         $idImp = (int)$pdo->lastInsertId();
 
-        // Inserción en lotes de 300 filas → reduce 4000 queries a ≈14
-        $BATCH    = 300;
-        $nBatches = max(1, (int)ceil($nValidos / $BATCH));
-        $insertados = $duplicados = 0;
-        $afectadas = []; // Pares únicos (rut_base, fecha)
+        $BATCH      = 500;
+        $insertados = 0;
+        $dupBD      = 0;
+        $afectadas  = [];
 
-        for ($b = 0; $b < $nBatches; $b++) {
-            $lote = array_slice($validos, $b * $BATCH, $BATCH);
-            $ins  = insertar_lote($pdo, $lote, $idImp);
-            $insertados += $ins;
-            $duplicados += count($lote) - $ins;
+        if ($nNuevos > 0) {
+            $nBatches = max(1, (int)ceil($nNuevos / $BATCH));
 
-            // Registrar pares afectados (para recalcular solo esos)
-            foreach ($lote as $row) {
-                $key = $row['rut_base'].'|'.$row['fecha'];
-                $afectadas[$key] = ['rut_base'=>$row['rut_base'],'fecha'=>$row['fecha']];
+            for ($b = 0; $b < $nBatches; $b++) {
+                $lote = array_slice($nuevos, $b * $BATCH, $BATCH);
+                $ins  = insertar_lote($pdo, $lote, $idImp);
+                $insertados += $ins;
+                $dupBD      += count($lote) - $ins;
+
+                foreach ($lote as $row) {
+                    $k = $row['rut_base'].'|'.$row['fecha'];
+                    $afectadas[$k] = ['rut_base' => $row['rut_base'], 'fecha' => $row['fecha']];
+                }
+
+                // CUIDADO DEL SERVIDOR: Micropausa de 200ms por cada bloque de inserción (libera CPU)
+                usleep(200000); 
+
+                $elapsed = microtime(true) - $t0;
+                $rps     = $elapsed > 0.01 ? (int)(($b + 1) * $BATCH / $elapsed) : 0;
+                $prog    = 38 + (int)round((($b + 1) / $nBatches) * 42);
+                $totalDupHastaAhora = $dupBD + $dupMemoria;
+
+                $emit([
+                    'phase'        => 'inserting',
+                    'progress'     => $prog,
+                    'batch'        => $b + 1,
+                    'totalBatches' => $nBatches,
+                    'inserted'     => $insertados,
+                    'duplicated'   => $totalDupHastaAhora,
+                    'rps'          => $rps,
+                    'message'      => "Lote " . ($b + 1) . "/$nBatches — $insertados insertados",
+                ]);
             }
-
-            $prog = 28 + (int)round((($b+1)/$nBatches) * 50);
+        } else {
             $emit([
-                'phase'       => 'inserting',
-                'progress'    => $prog,
-                'batch'       => $b+1,
-                'totalBatches'=> $nBatches,
-                'inserted'    => $insertados,
-                'duplicated'  => $duplicados,
-                'message'     => "Lote ".($b+1)."/$nBatches insertado — $insertados nuevos, $duplicados duplicados"
+                'phase'        => 'inserting',
+                'progress'     => 80,
+                'batch'        => 0,
+                'totalBatches' => 0,
+                'inserted'     => 0,
+                'duplicated'   => $dupMemoria,
+                'rps'          => 0,
+                'message'      => 'Sin registros nuevos que insertar.',
             ]);
         }
 
-        // ── Fase 4: Recalcular resumen parcial ──
-        $nPares = count($afectadas);
-        $emit(['phase'=>'resumen','progress'=>80,'pairs'=>$nPares,
-               'message'=>"Calculando $nPares resúmenes de asistencia..."]);
+        $totalDup = $dupBD + $dupMemoria;
+        $nPares   = count($afectadas);
 
-        $recalc = recalcular_parcial($pdo, array_values($afectadas));
+        $emit([
+            'phase'   => 'resumen',
+            'progress'=> 82,
+            'pairs'   => $nPares,
+            'message' => "Recalculando $nPares resúmenes de asistencia...",
+        ]);
 
-        // Actualizar registro de importación con los totales reales
+        $recalc = $nPares > 0 ? recalcular_parcial($pdo, array_values($afectadas)) : 0;
+
+        $pdo->exec("SET SESSION foreign_key_checks=1");
         $pdo->prepare("
             UPDATE marcaciones_importaciones
-            SET total_lineas=?,total_insertadas=?,total_duplicadas=?,total_invalidas=?
+            SET total_lineas=?, total_insertadas=?, total_duplicadas=?, total_invalidas=?
             WHERE id=?
-        ")->execute([$totalBruto, $insertados, $duplicados, $invalidos, $idImp]);
+        ")->execute([$totalBruto, $insertados, $totalDup, $invalidos, $idImp]);
 
         $pdo->commit();
 
+        $tiempoTotal = round(microtime(true) - $t0, 2);
+
         $emit([
-            'phase'   => 'done',
-            'progress'=> 100,
-            'result'  => [
+            'phase'    => 'done',
+            'progress' => 100,
+            'result'   => [
                 'leidos'     => $totalBruto,
                 'validos'    => $nValidos,
                 'insertados' => $insertados,
-                'duplicados' => $duplicados,
+                'duplicados' => $totalDup,
                 'invalidos'  => $invalidos,
                 'resumen'    => $recalc,
-            ]
+                'tiempo'     => $tiempoTotal,
+            ],
         ]);
 
     } catch (Exception $e) {
-        $pdo->rollBack();
-        $emit(['phase'=>'error','message'=>'Error interno: '.$e->getMessage()]);
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        $emit(['phase' => 'error', 'message' => 'Error interno: ' . $e->getMessage()]);
     }
     exit;
 }
@@ -570,9 +698,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);
 .btn-sec.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
 .btn-sec.primary:hover{background:#1d4ed8;}
 
-/* ── Historial últimas importaciones ───────────────────────── */
-.hist-card{display:none;}
-
 /* ── Responsive ────────────────────────────────────────────── */
 @media(max-width:600px){
   .form-grid { grid-template-columns: 1fr; }
@@ -586,7 +711,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);
 <div class="main-scroll">
 <div class="wrap">
 
-<!-- ═══ UPLOAD CARD ═══════════════════════════════════════ -->
 <div class="card" id="upload-card">
   <div class="card-hd">
     <svg width="26" height="26" fill="none" stroke="var(--blue)" stroke-width="2"
@@ -612,7 +736,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);
     <span id="alert-err-msg"></span>
   </div>
 
-  <!-- Dropzone -->
   <div class="dropzone" id="dropzone">
     <input type="file" id="file-input" accept=".txt,.csv">
     <div class="dz-icon" id="dz-icon">
@@ -631,7 +754,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);
     </div>
   </div>
 
-  <!-- Período + Observación -->
   <div class="form-grid">
     <div class="fg">
       <label for="periodo">Período</label>
@@ -653,7 +775,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);
   </button>
 </div>
 
-<!-- ═══ PROGRESS CARD ══════════════════════════════════════ -->
 <div class="card prog-card" id="prog-card">
 
   <div class="prog-header">
@@ -694,7 +815,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);
 
 </div>
 
-<!-- ═══ RESULTS CARD ═══════════════════════════════════════ -->
 <div class="card res-card" id="res-card">
   <div class="res-hd">
     <svg width="22" height="22" fill="none" stroke="var(--grn)" stroke-width="2.5"
@@ -738,10 +858,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);
   </div>
 </div>
 
-</div><!-- /wrap -->
-</div><!-- /main-scroll -->
-
-<script>
+</div></div><script>
 (function(){
 'use strict';
 
@@ -774,6 +891,26 @@ function fmtBytes(b){
 }
 function fmtNum(n){ return parseInt(n).toLocaleString('es-CL'); }
 
+/* Función de Animación de Números (Count-Up) */
+function animateValue(id, start, end, duration) {
+    var obj = document.getElementById(id);
+    if (!obj) return;
+    var startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        // Función de suavizado (easeOutQuart) para frenar suavemente al final
+        const easeOut = 1 - Math.pow(1 - progress, 4);
+        obj.innerHTML = fmtNum(Math.floor(easeOut * (end - start) + start));
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            obj.innerHTML = fmtNum(end); // Asegurar el número final exacto
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
 /* ── Alertas ──────────────────────────────────────────────── */
 function showAlert(msg){ alertMsg.textContent=msg; alertErr.classList.add('show'); }
 function hideAlert(){ alertErr.classList.remove('show'); }
@@ -793,7 +930,6 @@ function setFile(file){
     document.getElementById('dz-chips').style.display = 'flex';
     document.getElementById('dz-chip-name').textContent = '📄 '+file.name;
     document.getElementById('dz-chip-size').textContent = '💾 '+fmtBytes(file.size);
-    // Icono check
     document.getElementById('dz-svg').innerHTML =
         '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
     btnImport.disabled = false;
@@ -878,10 +1014,23 @@ function handleEvent(ev){
             progSub.textContent = fmtNum(ev.validos)+' registros válidos para insertar.';
             break;
 
+        case 'dedup': 
+            setStep(2,'active');
+            setProg(ev.progress, ev.message||'Consultando duplicados...');
+            if(ev.predup > 0){
+                progSub.textContent = fmtNum(ev.predup) + ' duplicados detectados y omitidos antes de insertar.';
+            } else if(ev.nuevos !== undefined){
+                progSub.textContent = fmtNum(ev.nuevos) + ' registros nuevos listos para insertar en BD.';
+            }
+            break;
+
         case 'inserting':
             setStep(2,'active');
-            setProg(ev.progress, 'Lote '+ev.batch+' de '+ev.totalBatches+
-                    ' — '+fmtNum(ev.inserted)+' insertados, '+fmtNum(ev.duplicated)+' duplicados');
+            var info = 'Lote '+ev.batch+' de '+ev.totalBatches+
+                       ' — '+fmtNum(ev.inserted)+' insertados, '+fmtNum(ev.duplicated)+' duplicados';
+            if(ev.rps && ev.rps > 0) info += ' · ' + fmtNum(ev.rps) + ' reg/s';
+            setProg(ev.progress, info);
+            
             document.getElementById('badge-2').textContent =
                 fmtNum(ev.inserted)+' ins. · '+fmtNum(ev.duplicated)+' dup.';
             document.getElementById('badge-2').style.display = 'inline';
@@ -932,22 +1081,33 @@ function handleEvent(ev){
     }
 }
 
-/* ── Results ──────────────────────────────────────────────── */
+/* ── Results (Con Animación) ──────────────────────────────── */
 function showResults(r){
     progCard.classList.remove('show');
     var grid = document.getElementById('res-grid');
-    function stat(val, lbl, cls){
+    
+    // Función de ayuda que ahora asigna IDs únicos para poder animarlos
+    function stat(lbl, cls, id){
         return '<div class="res-stat '+cls+'">'+
-               '<div class="res-val">'+fmtNum(val)+'</div>'+
+               '<div class="res-val" id="count-'+id+'">0</div>'+
                '<div class="res-lbl">'+lbl+'</div></div>';
     }
+    
     grid.innerHTML =
-        stat(r.leidos,     'Líneas leídas',        'slt') +
-        stat(r.insertados, 'Nuevos registros',      'grn') +
-        stat(r.duplicados, 'Duplicados omitidos',   r.duplicados>0?'amb':'slt') +
-        stat(r.invalidos,  'Líneas inválidas',      r.invalidos>0?'red':'slt') +
-        stat(r.resumen,    'Resúmenes recalculados','blu');
+        stat('Líneas leídas',          'slt', 'leidos') +
+        stat('Nuevos registros',       'grn', 'insertados') +
+        stat('Duplicados omitidos',    r.duplicados>0?'amb':'slt', 'duplicados') +
+        stat('Líneas inválidas',       r.invalidos>0?'red':'slt', 'invalidos') +
+        stat('Resúmenes recalculados', 'blu', 'resumen');
+        
     resCard.classList.add('show');
+    
+    // Disparamos las animaciones (1200ms de duración)
+    animateValue('count-leidos', 0, r.leidos, 1200);
+    animateValue('count-insertados', 0, r.insertados, 1200);
+    animateValue('count-duplicados', 0, r.duplicados, 1200);
+    animateValue('count-invalidos', 0, r.invalidos, 1200);
+    animateValue('count-resumen', 0, r.resumen, 1200);
 }
 
 /* ── Import trigger ───────────────────────────────────────── */

@@ -862,7 +862,7 @@ function renderMes(d){
     });
 
     /* === LÓGICA DE PAGINACIÓN === */
-    var limit = 10; // Mostrar 50 empleados por página
+    var limit = 25; // Mostrar 25 empleados por página
     var totalEmps = emps.length;
     var totalPages = Math.ceil(totalEmps / limit) || 1;
     
