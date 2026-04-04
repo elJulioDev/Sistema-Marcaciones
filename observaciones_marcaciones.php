@@ -25,7 +25,7 @@ function nombre_dia_es($fechaYmd){
 }
 
 // --- VARIABLES DE PAGINACIÓN ---
-$registrosPorPagina = 25;
+$registrosPorPagina = 50;
 $paginaActual = isset($_GET['p']) && is_numeric($_GET['p']) ? (int)$_GET['p'] : 1;
 if ($paginaActual < 1) {
     $paginaActual = 1;
@@ -116,7 +116,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Extraer el detalle de marcaciones SOLAMENTE para los 25 registros de esta página
+// Extraer el detalle de marcaciones SOLAMENTE para los 50 registros de esta página
 $stmtDetalle = $pdo->prepare("
     SELECT hora
     FROM marcaciones
