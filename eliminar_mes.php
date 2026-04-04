@@ -34,12 +34,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtMarcas->execute(array(':inicio' => $fecha_inicio, ':fin' => $fecha_fin));
             $eliminados_brutos = $stmtMarcas->rowCount();
 
+            // 3. Eliminar el historial de la tabla marcaciones_importaciones asociado al periodo
+            // Apagamos FK checks para evitar conflictos si hay registros fuera de fecha amarrados
+            $pdo->exec("SET SESSION foreign_key_checks=0");
+            $stmtImportaciones = $pdo->prepare("DELETE FROM marcaciones_importaciones WHERE periodo = :mes");
+            $stmtImportaciones->execute(array(':mes' => $mes_seleccionado));
+            $eliminados_importaciones = $stmtImportaciones->rowCount();
+            $pdo->exec("SET SESSION foreign_key_checks=1");
+
             $pdo->commit();
 
-            if ($eliminados_resumen == 0 && $eliminados_brutos == 0) {
+            if ($eliminados_resumen == 0 && $eliminados_brutos == 0 && $eliminados_importaciones == 0) {
                 $mensaje = 'No se encontraron registros para el mes de ' . $mes_seleccionado . '.';
             } else {
-                $mensaje = "¡Éxito! Se eliminaron $eliminados_brutos marcaciones brutas y $eliminados_resumen registros de resumen para el mes $mes_seleccionado.";
+                $mensaje = "¡Éxito! Se eliminaron $eliminados_brutos marcaciones brutas, $eliminados_resumen registros de resumen y $eliminados_importaciones registros de importación para el mes $mes_seleccionado.";
             }
 
         } catch (Exception $e) {
@@ -47,6 +55,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Ocurrió un error al intentar eliminar los registros: ' . $e->getMessage();
         }
     }
+}
+
+// Obtener la lista del historial de importaciones para mostrar en la tabla
+$importaciones = [];
+try {
+    $stmtLista = $pdo->query("SELECT id, nombre_archivo, periodo, total_lineas, total_insertadas, observacion FROM marcaciones_importaciones ORDER BY id DESC");
+    $importaciones = $stmtLista->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Si la tabla no existe o hay algún error, capturamos el mensaje silenciosamente para no romper la pantalla
+    $errorLista = $e->getMessage();
 }
 ?>
 <!DOCTYPE html>
@@ -72,12 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             overflow-y: auto;
             width: 100%;
         }
-        .wrap { max-width: 800px; margin: 0 auto; padding: 24px; }
+        .wrap { max-width: 900px; margin: 0 auto; padding: 24px; }
         .card{
             background:#fff; border-radius:16px; padding:24px;
             box-shadow:0 10px 30px rgba(0,0,0,.08);
+            margin-bottom: 24px;
         }
         h1{ margin:0 0 12px; color: #991b1b; }
+        h2{ margin:0 0 12px; color: #1f2937; font-size: 20px;}
         p{ margin:0 0 16px; color:#4b5563; }
         .alert{ padding:12px 14px; border-radius:10px; margin-bottom:16px; }
         .ok{ background:#dcfce7; color:#166534; }
@@ -101,15 +121,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 15px; font-weight: bold; transition: 0.2s;
         }
         .btn-danger:hover { background: #b91c1c; }
+
+        /* Estilos para la tabla de historial */
+        .table-wrap { overflow-x: auto; margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+        th { background: #f9fafb; font-weight: bold; color: #4b5563; }
+        tr:hover { background: #f9fafb; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #e5e7eb; color: #374151; }
+        .badge.blue { background: #dbeafe; color: #1e40af; }
     </style>
 </head>
 <body>
     <?php include 'navbar.php'; ?>
 <div class="main-scroll">
 <div class="wrap">
+    
     <div class="card">
         <h1>Eliminar marcaciones de un mes</h1>
-        <p>Esta herramienta borrará de forma permanente <strong>todos los registros y cálculos</strong> del mes seleccionado. Úsala para limpiar datos basura generados por pruebas o importaciones erróneas.</p>
+        <p>Esta herramienta borrará de forma permanente <strong>todos los registros, resúmenes calculados y el historial de importación</strong> del mes seleccionado. Úsala para limpiar datos basura generados por pruebas o importaciones erróneas.</p>
 
         <?php if ($mensaje !== ''): ?>
             <div class="alert ok"><?php echo $mensaje; ?></div>
@@ -129,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="checkbox-group">
                     <input type="checkbox" id="confirmacion" name="confirmacion" required>
                     <label for="confirmacion">
-                        <strong>Estoy seguro.</strong> Entiendo que esta acción no se puede deshacer y eliminará tanto los datos del reloj como los resúmenes calculados para todo el mes.
+                        <strong>Estoy seguro.</strong> Entiendo que esta acción no se puede deshacer y eliminará tanto los datos del reloj como el registro de la importación asociada a ese período.
                     </label>
                 </div>
             </div>
@@ -142,6 +172,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
         </form>
     </div>
+
+    <div class="card">
+        <h2>Historial de Archivos Importados</h2>
+        <p>Lista de archivos procesados y guardados en la tabla de registros. Al eliminar un mes en el formulario superior, se eliminará también su registro de esta lista.</p>
+        
+        <?php if (isset($errorLista)): ?>
+            <div class="alert err">Error al cargar la tabla de importaciones: <?php echo htmlspecialchars($errorLista); ?></div>
+        <?php else: ?>
+            <div class="table-wrap">
+                <?php if (count($importaciones) > 0): ?>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">ID</th>
+                                <th>Nombre del Archivo</th>
+                                <th style="width: 120px;">Período</th>
+                                <th>Líneas leídas</th>
+                                <th>Insertadas</th>
+                                <th>Observación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($importaciones as $imp): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($imp['id']); ?></td>
+                                <td><strong><?php echo htmlspecialchars($imp['nombre_archivo']); ?></strong></td>
+                                <td>
+                                    <?php if (!empty($imp['periodo'])): ?>
+                                        <span class="badge blue"><?php echo htmlspecialchars($imp['periodo']); ?></span>
+                                    <?php else: ?>
+                                        <span class="badge">Sin periodo</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo number_format($imp['total_lineas'], 0, ',', '.'); ?></td>
+                                <td><?php echo number_format($imp['total_insertadas'], 0, ',', '.'); ?></td>
+                                <td style="color: #6b7280;"><?php echo htmlspecialchars($imp['observacion']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <div style="padding: 16px; color: #6b7280; font-style: italic; background:#f9fafb;">
+                        No hay registros de importaciones guardados en el sistema actualmente.
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
 </div>
 </div>
 </body>
