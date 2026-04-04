@@ -409,7 +409,6 @@ if ($isJson) {
         </button>
       </div>
 
-      <div class="ws" id="week-strip"></div>
       <div class="dcard" id="dcard">
         <div class="empty"><span class="sp"></span></div>
       </div>
@@ -455,7 +454,6 @@ var cur = null;
 var elTitle  = document.getElementById('month-title');
 var elCal    = document.getElementById('cal');
 var elStats  = document.getElementById('stats');
-var elWeek   = document.getElementById('week-strip');
 var elCard   = document.getElementById('dcard');
 var elBtnD   = document.getElementById('btn-dia');
 var elBtnSem = document.getElementById('btn-semana');
@@ -657,28 +655,6 @@ function renderStats(d){
         '<div class="sc"><div class="sv" style="color:var(--amb)">'+(s.inc_total||0)+'</div><div class="sl">Incidencias</div></div>'+
         '<div class="sc"><div class="sv" style="color:var(--sky)">'+(s.obs_total||0)+'</div><div class="sl">Observados</div></div>'+
         '<div class="sc"><div class="sv" style="color:var(--red)">'+(s.err_total||0)+'</div><div class="sl">Errores</div></div>';
-}
-
-/* ── Render: week strip (día mode only) ───────────────────── */
-function renderWeek(d){
-    if(d.modo !== 'dia'){ elWeek.style.display='none'; return; }
-    elWeek.style.display='grid';
-    var h='';
-    d.semana.forEach(function(w){
-        var cls='wd'+(w.fin?' fin':'')+(w.fecha===d.fechaSel?' sel':'')+(w.hoy?' hoy':'')+(w.en_mes?'':' out');
-        h+='<div class="'+cls+'" data-fecha="'+w.fecha+'">';
-        h+='<span class="wl">'+w.label+'</span><span class="wn">'+w.num+'</span>';
-        if(w.dot){
-            h+='<div class="dr" style="margin: 2px 0;">';
-            if(+w.dot.ok_cnt>0)  h+='<span class="dot dok"></span>';
-            if(+w.dot.inc_cnt>0) h+='<span class="dot dis"></span>';
-            if(+w.dot.obs_cnt>0) h+='<span class="dot dobs"></span>';
-            if(+w.dot.err_cnt>0) h+='<span class="dot derr"></span>';
-            h+='</div><span class="wt">'+w.dot.total+'</span>';
-        }
-        h+='</div>';
-    });
-    elWeek.innerHTML=h;
 }
 
 /* ── Render: day view ─────────────────────────────────────── */
@@ -1040,7 +1016,6 @@ function renderAll(d){
     renderHdr(d);
     renderCal(d);
     renderStats(d);
-    renderWeek(d);
     if(d.modo==='semana')     renderSemana(d);
     else if(d.modo==='mes')   renderMes(d);
     else                      renderDay(d);
