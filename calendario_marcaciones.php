@@ -419,7 +419,7 @@ if ($isJson) {
     <div class="modal-actions">
       <button class="modal-btn-confirm" id="modal-confirm">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        Descargar CSV
+        Descargar
       </button>
       <button class="modal-btn-cancel" id="modal-cancel">Cancelar</button>
     </div>
@@ -501,7 +501,7 @@ function showExportModal(type){
         title.textContent = 'Descargar inasistencias de la semana';
         rlabel.textContent = 'Semana ' + weekNum + ' · ' + mesL;
         rval.textContent = formatFechaLarga(lunes.fecha) + '  →  ' + formatFechaLarga(viernes.fecha);
-        note.textContent = 'Se exportará un CSV con los empleados que faltaron al menos un día hábil dentro de este rango.';
+        note.textContent = 'Se exportará un archivo con los empleados que faltaron al menos un día hábil dentro de este rango.';
         _exportUrl = 'exportar_inasistencias.php?rango=semana&mes='+S.mes+'&fecha='+S.fecha;
 
     } else {
@@ -516,7 +516,7 @@ function showExportModal(type){
         title.textContent = 'Descargar inasistencias del mes';
         rlabel.textContent = nombreMes + ' ' + mesPartes[0];
         rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
-        note.textContent = 'Se exportará un CSV con los empleados que faltaron al menos un día hábil (lun–vie) durante este mes.';
+        note.textContent = 'Se exportará un archivo con los empleados que faltaron al menos un día hábil (lun–vie) durante este mes.';
         _exportUrl = 'exportar_inasistencias.php?rango=mes&mes='+S.mes+'&fecha='+S.fecha;
     }
     modal.classList.add('open');
