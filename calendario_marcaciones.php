@@ -507,15 +507,23 @@ function showExportModal(type){
     if(type === 'semana'){
         var sem     = cur.semana;
         var lunes   = sem[0];
-        var viernes = sem[4];
+        
+        // Determinar dinámicamente el último día de la semana con registros
+        var ultimoDia = sem[4]; // Viernes por defecto
+        if (cur.dots && cur.dots[sem[6].fecha] && parseInt(cur.dots[sem[6].fecha].total) > 0) {
+            ultimoDia = sem[6]; // Si hay marcas el Domingo, el rango termina el Domingo
+        } else if (cur.dots && cur.dots[sem[5].fecha] && parseInt(cur.dots[sem[5].fecha].total) > 0) {
+            ultimoDia = sem[5]; // Si hay marcas el Sábado, el rango termina el Sábado
+        }
+
         var weekNum = cur.numSemana;
         var mesL    = cur.mesLabel;
 
         icon.className = 'modal-icon green';
-        title.textContent = 'Descargar inasistencias de la semana';
+        title.textContent = 'Descargar reporte semanal';
         rlabel.textContent = 'Semana ' + weekNum + ' · ' + mesL;
-        rval.textContent = formatFechaLarga(lunes.fecha) + '  →  ' + formatFechaLarga(viernes.fecha);
-        note.textContent = 'Se exportará un archivo con los empleados que faltaron al menos un día hábil dentro de este rango.';
+        rval.textContent = formatFechaLarga(lunes.fecha) + '  →  ' + formatFechaLarga(ultimoDia.fecha);
+        note.textContent = 'Se exportará un archivo con los empleados que faltaron de Lunes a Viernes, incluyendo el fin de semana si hubo asistencia.';
         _exportUrl = 'exportar_inasistencias.php?rango=semana&mes='+S.mes+'&fecha='+S.fecha;
 
     } else {
@@ -527,10 +535,10 @@ function showExportModal(type){
         var ultimoDia = S.mes+'-'+(lastDay.getDate()<10?'0':'')+lastDay.getDate();
 
         icon.className = 'modal-icon blue';
-        title.textContent = 'Descargar inasistencias del mes';
+        title.textContent = 'Descargar reporte mensual';
         rlabel.textContent = nombreMes + ' ' + mesPartes[0];
         rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
-        note.textContent = 'Se exportará un archivo con los empleados que faltaron al menos un día hábil (lun–vie) durante este mes.';
+        note.textContent = 'Se exportará un archivo con los empleados que faltaron de Lunes a Viernes, añadiendo columnas extra para los fines de semana que registren actividad.';
         _exportUrl = 'exportar_inasistencias.php?rango=mes&mes='+S.mes+'&fecha='+S.fecha;
     }
     modal.classList.add('open');
