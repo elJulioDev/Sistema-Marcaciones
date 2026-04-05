@@ -11,7 +11,14 @@ $pdo = db();
 // ═══════════════════════════════════════════════════════════════════
 function h($v)             { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 function limpiar_numero($v){ return preg_replace('/[^0-9K]/', '', strtoupper(trim((string)$v))); }
-function obtener_rut_base($n){ return preg_replace('/[^0-9]/', '', (string)$n); }
+function obtener_rut_base($n){ 
+    // $n ya viene sin guiones ("123456789" o "12345678K")
+    // Solo debemos quitarle el último carácter que corresponde al DV
+    if (strlen($n) > 1) {
+        return substr($n, 0, -1);
+    }
+    return $n;
+}
 function parsear_linea($linea) {
     $linea = trim((string)$linea);
     if ($linea === '') return false;
