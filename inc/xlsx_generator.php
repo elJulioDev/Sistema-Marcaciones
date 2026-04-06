@@ -188,11 +188,29 @@ class XlsxWriter
 
     private $rows             = array();
     private $colWidths        = array();
-    private $rowHeights       = array();  // Calculado por autoFitRows()
+    private $rowHeights       = array();
     private $sharedStrings    = array();
     private $sharedStringsMap = array();
+    private $mergeCells       = array(); // Rangos de celdas combinadas (A1:Z1, etc.)
 
-    public function addRow(array $cells)      { $this->rows[]          = $cells; }
+    public function addRow(array $cells)
+    {
+        $rowIndex = count($this->rows) + 1;
+        $this->rows[] = $cells;
+
+        // Detectar colspan y registrar el rango de merge para buildSheet()
+        $colIndex = 0;
+        foreach ($cells as $cell) {
+            if (isset($cell['colspan']) && (int)$cell['colspan'] > 1) {
+                $colspan  = (int)$cell['colspan'];
+                $startRef = self::getColLetter($colIndex) . $rowIndex;
+                $endRef   = self::getColLetter($colIndex + $colspan - 1) . $rowIndex;
+                $this->mergeCells[] = $startRef . ':' . $endRef;
+            }
+            $colIndex++;
+        }
+    }
+
     public function setColWidth($col, $width) { $this->colWidths[$col] = $width; }
     public function getExtension()            { return '.xlsx'; }
     public function getContentType()
@@ -200,22 +218,12 @@ class XlsxWriter
         return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     }
 
-
     /**
-     * Calcula automáticamente el ancho de cada columna según el contenido más largo.
-     * Debe llamarse DESPUÉS de agregar todas las filas con addRow().
-     *
-     * Considera:
-     *  - Caracteres UTF-8 (tildes, ñ, símbolos) via mb_strlen()
-     *  - Texto en negrita (~10% más ancho que texto normal)
-     *  - Celdas con saltos de línea: usa la línea más larga
-     *
-     * @param float $minWidth  Ancho mínimo en unidades Excel (default: 10)
-     * @param float $maxWidth  Ancho máximo en unidades Excel (default: 55)
+     * Calcula automaticamente el ancho de cada columna segun el contenido mas largo.
+     * Las celdas con colspan > 1 se ignoran para no deformar la columna de origen.
      */
     public function autoFitColumns($minWidth = 10.0, $maxWidth = 55.0)
     {
-        // Estilos con fuente en negrita (glyphs ~10% más anchos)
         $boldStyles = array(
             self::STYLE_HEADER,
             self::STYLE_INFO,
@@ -228,23 +236,22 @@ class XlsxWriter
 
         foreach ($this->rows as $row) {
             foreach ($row as $ci => $cell) {
+                // Celda combinada: su texto se reparte en varias columnas -> ignorar
+                if (isset($cell['colspan']) && (int)$cell['colspan'] > 1) {
+                    continue;
+                }
+
                 $val   = isset($cell['value']) ? (string)$cell['value'] : '';
                 $style = isset($cell['style']) ? (int)$cell['style']   : 0;
                 $bold  = in_array($style, $boldStyles);
 
-                // Calcular el largo de la línea más larga (maneja \n)
                 $lineMax = 0;
                 foreach (explode("\n", $val) as $line) {
                     $len = function_exists('mb_strlen')
                          ? mb_strlen($line, 'UTF-8')
                          : strlen($line);
-                    // Negrita ocupa ~10% más de espacio horizontal
-                    if ($bold) {
-                        $len = $len * 1.1;
-                    }
-                    if ($len > $lineMax) {
-                        $lineMax = $len;
-                    }
+                    if ($bold) { $len = $len * 1.1; }
+                    if ($len > $lineMax) { $lineMax = $len; }
                 }
 
                 if (!isset($maxChars[$ci]) || $lineMax > $maxChars[$ci]) {
@@ -254,8 +261,6 @@ class XlsxWriter
         }
 
         foreach ($maxChars as $ci => $chars) {
-            // Fórmula empírica para Arial 10pt en Excel:
-            //   ancho = chars * 1.2 + 2 (padding interno de celda)
             $width = ($chars * 1.2) + 2.0;
             $this->colWidths[$ci] = round(
                 max((float)$minWidth, min((float)$maxWidth, $width)),
@@ -265,21 +270,13 @@ class XlsxWriter
     }
 
     /**
-     * Calcula automáticamente el alto de cada fila según su contenido.
-     * Debe llamarse DESPUÉS de autoFitColumns() para poder estimar el wrap.
-     *
-     * Considera:
-     *  - Saltos de línea explícitos (\n) en el valor de la celda
-     *  - Estimación de líneas por wrap en celdas con wrapText="1" (estilos HEADER y DATE_HEADER)
-     *
-     * @param float $defaultHeight  Alto para filas de una sola línea, en puntos (default: 18)
+     * Calcula automaticamente el alto de cada fila segun su contenido.
+     * Las celdas con colspan se tratan como una sola linea para evitar
+     * que el motor sobreestime el wrap sobre una columna estrecha.
      */
     public function autoFitRows($defaultHeight = 18.0)
     {
-        // Estilos que tienen wrapText="1" definido en buildStyles()
         $wrapStyles = array(self::STYLE_HEADER, self::STYLE_DATE_HEADER);
-
-        // Estilos con texto en negrita (menos chars caben por línea al hacer wrap)
         $boldStyles = array(
             self::STYLE_HEADER,
             self::STYLE_INFO,
@@ -288,8 +285,8 @@ class XlsxWriter
             self::STYLE_DATE_HEADER,
         );
 
-        $ptPerLine = 15.0;  // Puntos por línea para Arial 10pt
-        $padding   = 5.0;   // Margen vertical interno (top + bottom de la celda)
+        $ptPerLine = 15.0;
+        $padding   = 5.0;
 
         foreach ($this->rows as $ri => $row) {
             $maxLines = 1;
@@ -298,43 +295,35 @@ class XlsxWriter
                 $val   = isset($cell['value']) ? (string)$cell['value'] : '';
                 $style = isset($cell['style']) ? (int)$cell['style']   : 0;
 
-                if ($val === '') {
-                    continue;
-                }
+                if ($val === '') { continue; }
 
-                // 1. Líneas por saltos de línea explícitos
                 $explicitLines = substr_count($val, "\n") + 1;
+                $wrappedLines  = 1;
 
-                // 2. Estimación de líneas por wrap (solo para estilos con wrapText)
-                $wrappedLines = 1;
                 if (in_array($style, $wrapStyles) && isset($this->colWidths[$ci])) {
-                    $colW = $this->colWidths[$ci];
-                    // Chars por línea: negrita necesita más espacio → caben menos chars
-                    $isBold      = in_array($style, $boldStyles);
-                    $charFactor  = $isBold ? 0.88 : 1.0;
-                    $charsPerLine = max(1.0, ($colW - 2.0) * $charFactor);
-
-                    // Largo de la línea más larga del contenido
-                    $lineMax = 0;
-                    foreach (explode("\n", $val) as $line) {
-                        $l = function_exists('mb_strlen')
-                           ? mb_strlen($line, 'UTF-8')
-                           : strlen($line);
-                        if ($l > $lineMax) {
-                            $lineMax = $l;
-                        }
-                    }
-                    // Ceil division sin función ceil para PHP 5.6 compat
-                    $wrappedLines = (int)(($lineMax + $charsPerLine - 1) / $charsPerLine);
-                    if ($wrappedLines < 1) {
+                    // Celdas combinadas tienen mucho ancho real -> no calcular wrap
+                    if (isset($cell['colspan']) && (int)$cell['colspan'] > 1) {
                         $wrappedLines = 1;
+                    } else {
+                        $colW        = $this->colWidths[$ci];
+                        $isBold      = in_array($style, $boldStyles);
+                        $charFactor  = $isBold ? 0.88 : 1.0;
+                        $charsPerLine = max(1.0, ($colW - 2.0) * $charFactor);
+
+                        $lineMax = 0;
+                        foreach (explode("\n", $val) as $line) {
+                            $l = function_exists('mb_strlen')
+                               ? mb_strlen($line, 'UTF-8')
+                               : strlen($line);
+                            if ($l > $lineMax) { $lineMax = $l; }
+                        }
+                        $wrappedLines = (int)(($lineMax + $charsPerLine - 1) / $charsPerLine);
+                        if ($wrappedLines < 1) { $wrappedLines = 1; }
                     }
                 }
 
                 $lines = max($explicitLines, $wrappedLines);
-                if ($lines > $maxLines) {
-                    $maxLines = $lines;
-                }
+                if ($lines > $maxLines) { $maxLines = $lines; }
             }
 
             $this->rowHeights[$ri] = round(
@@ -346,12 +335,10 @@ class XlsxWriter
 
     /**
      * Genera el binario .xlsx.
-     * Usa ZipArchive si está disponible; si no, usa PurePhpZip.
-     * El archivo resultante es idéntico en ambos casos.
+     * Usa ZipArchive si esta disponible; si no, usa PurePhpZip.
      */
     public function generate()
     {
-        // Construir todos los XML parts (buildSheet puebla sharedStrings)
         $sheetXml = $this->buildSheet();
         $ssXml    = $this->buildSharedStrings();
 
@@ -371,7 +358,7 @@ class XlsxWriter
         return $this->zipWithPurePhp($parts);
     }
 
-    // ── Motores ZIP ───────────────────────────────────────────────────────────
+    // Motores ZIP
 
     private function zipWithZipArchive(array $parts)
     {
@@ -396,7 +383,7 @@ class XlsxWriter
         return $zip->build();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // Helpers
 
     private function addSharedString($str)
     {
@@ -408,7 +395,11 @@ class XlsxWriter
         return $this->sharedStringsMap[$str];
     }
 
-    private function colLetter($n)
+    /**
+     * Convierte un indice de columna (0-based) a letras Excel: 0->A, 25->Z, 26->AA
+     * public static para poder llamarla desde addRow() sin instancia previa.
+     */
+    public static function getColLetter($n)
     {
         $letter = '';
         $n++;
@@ -425,7 +416,7 @@ class XlsxWriter
         return htmlspecialchars((string)$str, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
-    // ── XML builders ─────────────────────────────────────────────────────────
+    // XML builders
 
     private function buildContentTypes()
     {
@@ -459,7 +450,7 @@ class XlsxWriter
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets><sheet name="Inasistencias" sheetId="1" r:id="rId1"/></sheets>
+  <sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets>
 </workbook>';
     }
 
@@ -481,7 +472,6 @@ class XlsxWriter
 
     private function buildStyles()
     {
-        // cellXfs index = constante STYLE_*
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="8">
@@ -493,11 +483,11 @@ class XlsxWriter
     <font><b/><sz val="10"/><name val="Arial"/></font>
     <!-- 3: verde oscuro (OK) -->
     <font><sz val="10"/><color rgb="FF065F46"/><name val="Arial"/></font>
-    <!-- 4: rojo oscuro negrita (FALTÓ) -->
+    <!-- 4: rojo oscuro negrita (FALTO) -->
     <font><b/><sz val="10"/><color rgb="FF991B1B"/><name val="Arial"/></font>
     <!-- 5: gris claro (futuro) -->
     <font><sz val="10"/><color rgb="FF9CA3AF"/><name val="Arial"/></font>
-    <!-- 6: ámbar oscuro negrita (totales) -->
+    <!-- 6: ambar oscuro negrita (totales) -->
     <font><b/><sz val="10"/><color rgb="FF92400E"/><name val="Arial"/></font>
     <!-- 7: azul oscuro negrita (cabecera fechas) -->
     <font><b/><sz val="10"/><color rgb="FF1E40AF"/><name val="Arial"/></font>
@@ -511,11 +501,11 @@ class XlsxWriter
     <fill><patternFill patternType="solid"><fgColor rgb="FFF1F5F9"/></patternFill></fill>
     <!-- 4: verde claro OK -->
     <fill><patternFill patternType="solid"><fgColor rgb="FFD1FAE5"/></patternFill></fill>
-    <!-- 5: rojo claro FALTÓ -->
+    <!-- 5: rojo claro FALTO -->
     <fill><patternFill patternType="solid"><fgColor rgb="FFFEE2E2"/></patternFill></fill>
     <!-- 6: gris muy claro futuro -->
     <fill><patternFill patternType="solid"><fgColor rgb="FFF9FAFB"/></patternFill></fill>
-    <!-- 7: ámbar claro totales -->
+    <!-- 7: ambar claro totales -->
     <fill><patternFill patternType="solid"><fgColor rgb="FFFEF3C7"/></patternFill></fill>
     <!-- 8: azul claro fechas -->
     <fill><patternFill patternType="solid"><fgColor rgb="FFDBEAFE"/></patternFill></fill>
@@ -541,18 +531,18 @@ class XlsxWriter
       <alignment vertical="center"/>
     </xf>
     <!-- 1 HEADER -->
-    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1">
-      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center" wrapText="1"/>
     </xf>
     <!-- 2 INFO -->
-    <xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1">
-      <alignment vertical="center"/>
+    <xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
     </xf>
     <!-- 3 OK -->
     <xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1">
       <alignment horizontal="center" vertical="center"/>
     </xf>
-    <!-- 4 FALTÓ -->
+    <!-- 4 FALTO -->
     <xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1">
       <alignment horizontal="center" vertical="center"/>
     </xf>
@@ -586,7 +576,7 @@ class XlsxWriter
 
     private function buildSheet()
     {
-        // Registrar todas las strings compartidas en un primer pase
+        // Primer pase: registrar todas las strings compartidas
         foreach ($this->rows as $row) {
             foreach ($row as $cell) {
                 $v = isset($cell['value']) ? (string)$cell['value'] : '';
@@ -617,7 +607,7 @@ class XlsxWriter
                  : '18.0';
             $xml .= '    <row r="' . $rn . '" ht="' . $ht . '" customHeight="1">' . "\n";
             foreach ($row as $ci => $cell) {
-                $ref = $this->colLetter($ci) . $rn;
+                $ref = self::getColLetter($ci) . $rn;
                 $s   = isset($cell['style']) ? (int)$cell['style'] : 0;
                 $v   = isset($cell['value']) ? (string)$cell['value'] : '';
 
@@ -632,9 +622,21 @@ class XlsxWriter
             }
             $xml .= '    </row>' . "\n";
         }
-        return $xml . "  </sheetData>\n</worksheet>";
+        $xml .= "  </sheetData>\n";
+
+        // mergeCells debe aparecer DESPUES de sheetData segun el estandar OOXML
+        if (!empty($this->mergeCells)) {
+            $xml .= '  <mergeCells count="' . count($this->mergeCells) . '">' . "\n";
+            foreach ($this->mergeCells as $range) {
+                $xml .= '    <mergeCell ref="' . $range . '"/>' . "\n";
+            }
+            $xml .= '  </mergeCells>' . "\n";
+        }
+
+        return $xml . "</worksheet>";
     }
 }
+
 
 
 // ═════════════════════════════════════════════════════════════════════════════

@@ -407,6 +407,10 @@ if ($isJson) {
           <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Inasistencias Mensual
         </button>
+        <button id="btn-exp-horas" style="padding:6px 12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r2);font-weight:600;font-size:13px;transition:.15s;display:flex;align-items:center;gap:6px;height:36px;cursor:pointer;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Horas del Mes
+        </button>
       </div>
 
       <div class="dcard" id="dcard">
@@ -524,7 +528,7 @@ function showExportModal(type){
         note.textContent = 'Se exportará un archivo con los empleados que faltaron de Lunes a Viernes, incluyendo el fin de semana si hubo asistencia.';
         _exportUrl = 'exportar_inasistencias.php?rango=semana&mes='+S.mes+'&fecha='+S.fecha;
 
-    } else {
+    } else if(type === 'mes'){
         var mesPartes = S.mes.split('-');
         var nombreMes = MESES_FULL[parseInt(mesPartes[1])-1];
 
@@ -533,11 +537,30 @@ function showExportModal(type){
         var ultimoDia = S.mes+'-'+(lastDay.getDate()<10?'0':'')+lastDay.getDate();
 
         icon.className = 'modal-icon blue';
-        title.textContent = 'Descargar reporte mensual';
+        icon.style.background = '';
+        icon.style.color      = '';
+        title.textContent = 'Descargar inasistencias del mes';
         rlabel.textContent = nombreMes + ' ' + mesPartes[0];
         rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
-        note.textContent = 'Se exportará un archivo con los empleados que faltaron de Lunes a Viernes, añadiendo columnas extra para los fines de semana que registren actividad.';
+        note.textContent = 'Se exportará un archivo con los empleados que faltaron al menos un día hábil, añadiendo columnas extra para los fines de semana con actividad.';
         _exportUrl = 'exportar_inasistencias.php?rango=mes&mes='+S.mes+'&fecha='+S.fecha;
+
+    } else if(type === 'horas'){
+        var mesPartes = S.mes.split('-');
+        var nombreMes = MESES_FULL[parseInt(mesPartes[1])-1];
+
+        var primerDia = S.mes+'-01';
+        var lastDay   = new Date(parseInt(mesPartes[0]), parseInt(mesPartes[1]), 0);
+        var ultimoDia = S.mes+'-'+(lastDay.getDate()<10?'0':'')+lastDay.getDate();
+
+        icon.className = 'modal-icon';
+        icon.style.background = '#ede9fe';
+        icon.style.color      = '#6d28d9';
+        title.textContent = 'Descargar horas del mes';
+        rlabel.textContent = nombreMes + ' ' + mesPartes[0] + ' — Todos los funcionarios';
+        rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
+        note.textContent = 'Se exportará un Excel con TODOS los funcionarios: horas por día, total trabajado, horas esperadas y diferencia (+/−) respecto al mes completo.';
+        _exportUrl = 'exportar_horas_mes.php?mes='+S.mes+'&dpto='+encodeURIComponent(S.dpto)+'&q='+encodeURIComponent(S.q);
     }
     modal.classList.add('open');
 }
@@ -1103,6 +1126,9 @@ document.getElementById('btn-exp-sem').addEventListener('click', function(){
 });
 document.getElementById('btn-exp-mes').addEventListener('click', function(){
     showExportModal('mes');
+});
+document.getElementById('btn-exp-horas').addEventListener('click', function(){
+    showExportModal('horas');
 });
 
 /* ── Search debounce ─────────────────────────────────────────*/

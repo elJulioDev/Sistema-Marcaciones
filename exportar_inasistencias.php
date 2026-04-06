@@ -201,26 +201,28 @@ try {
 
     $totalCols = 4 + count($diasRevisar);
 
-    // ── FILA 1: Título ────────────────────────────────────────────────────────
+    // ── FILA 1: Título (combinada sobre todas las columnas) ──────────────────────────────────
     $filaTitle   = array();
     $filaTitle[] = array(
-        'value' => 'REPORTE DE INASISTENCIAS — ' . strtoupper($tituloPeriodo),
-        'style' => ExcelExporter::STYLE_HEADER,
+        'value'   => 'REPORTE DE INASISTENCIAS — ' . strtoupper($tituloPeriodo),
+        'style'   => ExcelExporter::STYLE_HEADER,
+        'colspan' => $totalCols,
     );
     for ($i = 1; $i < $totalCols; $i++) {
         $filaTitle[] = array('value' => '', 'style' => ExcelExporter::STYLE_HEADER);
     }
     $xlsx->addRow($filaTitle);
 
-    // ── FILA 2: Subtítulo / metadata ──────────────────────────────────────────
+    // ── FILA 2: Subtítulo / metadata (combinada) ──────────────────────────────────────────
     $fechaGen  = date('d/m/Y H:i');
     $filaSub   = array();
     $filaSub[] = array(
-        'value' => 'Generado el ' . $fechaGen . '   |   Total empleados listados: ' . count($filasDatos),
-        'style' => ExcelExporter::STYLE_TOTALES,
+        'value'   => 'Generado el ' . $fechaGen . '   |   Total empleados listados: ' . count($filasDatos),
+        'style'   => ExcelExporter::STYLE_INFO,
+        'colspan' => $totalCols,
     );
     for ($i = 1; $i < $totalCols; $i++) {
-        $filaSub[] = array('value' => '', 'style' => ExcelExporter::STYLE_TOTALES);
+        $filaSub[] = array('value' => '', 'style' => ExcelExporter::STYLE_INFO);
     }
     $xlsx->addRow($filaSub);
 
