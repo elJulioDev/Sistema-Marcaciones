@@ -86,7 +86,9 @@ try {
 
     /* ── 1. Todos los días del mes ──────────────────────────── */
     $todosDias = array();
-    $periodo   = new DatePeriod($inicioMes, new DateInterval('P1D'), (clone $finMes)->modify('+1 day'));
+    $finMesClon = clone $finMes;
+    $finMesClon->modify('+1 day');
+    $periodo   = new DatePeriod($inicioMes, new DateInterval('P1D'), $finMesClon);
     foreach ($periodo as $dt) {
         $todosDias[] = $dt->format('Y-m-d');
     }
@@ -104,7 +106,8 @@ try {
     // Lun–Vie: siempre. Sáb–Dom: solo si hubo marcación ese día.
     $diasColumna = array();
     foreach ($todosDias as $dia) {
-        $dow = (int)(new DateTime($dia))->format('N'); // 1=Lun, 7=Dom
+        $dtAux = new DateTime($dia);
+        $dow = (int)$dtAux->format('N'); // 1=Lun, 7=Dom
         $esFinde = ($dow >= 6);
         if (!$esFinde || isset($diasConMarcas[$dia])) {
             $diasColumna[] = $dia;
@@ -159,7 +162,8 @@ try {
     /* ── 6. Calcular días hábiles pasados (para horas esperadas) */
     $diasHabilesPasados = 0;
     foreach ($diasColumna as $dia) {
-        $dow     = (int)(new DateTime($dia))->format('N');
+        $dtAux = new DateTime($dia);
+        $dow = (int)$dtAux->format('N');
         $esFinde = ($dow >= 6);
         if (!$esFinde && $dia <= $hoy) {
             $diasHabilesPasados++;
