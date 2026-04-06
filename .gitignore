@@ -2,3 +2,6 @@ inc/db.php
 *.txt
 generador_datos.php
 datos/*
+auth.php
+hash.php
+error_log
