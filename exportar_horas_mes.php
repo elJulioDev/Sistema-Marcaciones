@@ -174,7 +174,7 @@ try {
     /* ── 7. Crear exportador ────────────────────────────────── */
     $xlsx = ExcelExporter::create();
 
-    $totalCols = 4 + count($diasColumna) + 4; // 4 fijas + días + 4 resumen
+    $totalCols = 4 + count($diasColumna);
 
     /* ── FILA 1: Título (combinada sobre todas las columnas) ── */
     $fila = array();
@@ -227,11 +227,6 @@ try {
         $fila[] = array('value' => $label, 'style' => ExcelExporter::STYLE_DATE_HEADER);
     }
 
-    // Cabeceras de resumen
-    $fila[] = array('value' => "Días\nTrabajados",   'style' => ExcelExporter::STYLE_TOTALES);
-    $fila[] = array('value' => "Total\nHoras",        'style' => ExcelExporter::STYLE_TOTALES);
-    $fila[] = array('value' => "Horas\nEsperadas",    'style' => ExcelExporter::STYLE_TOTALES);
-    $fila[] = array('value' => "Diferencia\n(+/−)",   'style' => ExcelExporter::STYLE_TOTALES);
     $xlsx->addRow($fila);
 
     /* ── FILAS DE DATOS ─────────────────────────────────────── */
@@ -316,40 +311,7 @@ try {
                 }
             }
 
-            // Columnas de resumen
-            $minutosEsperados  = $minutosEsperadosPorEmp;
-            $minutosDiferencia = $minutosTrab - $minutosEsperados;
-
-            $fila[] = array(
-                'value' => (string)$diasTrab,
-                'style' => ExcelExporter::STYLE_TOTALES,
-            );
-            $fila[] = array(
-                'value' => minutos_a_hhmm_display($minutosTrab),
-                'style' => ExcelExporter::STYLE_TOTALES,
-            );
-            $fila[] = array(
-                'value' => minutos_a_hhmm_display($minutosEsperados),
-                'style' => ExcelExporter::STYLE_TOTALES,
-            );
-
-            // Diferencia: verde si ≥ 0, rojo si < 0
-            $signo     = $minutosDiferencia >= 0 ? '+' : '';
-            $difStyle  = $minutosDiferencia >= 0
-                ? ExcelExporter::STYLE_OK
-                : ExcelExporter::STYLE_FALTA;
-
-            $fila[] = array(
-                'value' => $signo . minutos_a_hhmm_display(abs($minutosDiferencia)),
-                'style' => $difStyle,
-            );
-
             $xlsx->addRow($fila);
-
-            // Acumular globales
-            $totalGlobalDiasTrab  += $diasTrab;
-            $totalGlobalMinutos   += $minutosTrab;
-            $totalGlobalEsperados += $minutosEsperados;
             $numFila++;
         }
     }
@@ -375,14 +337,6 @@ try {
         }
     }
 
-    $globalDif      = $totalGlobalMinutos - $totalGlobalEsperados;
-    $globalDifStyle = $globalDif >= 0 ? ExcelExporter::STYLE_OK : ExcelExporter::STYLE_FALTA;
-    $globalSigno    = $globalDif >= 0 ? '+' : '';
-
-    $fila[] = array('value' => (string)$totalGlobalDiasTrab,                              'style' => ExcelExporter::STYLE_TOTALES);
-    $fila[] = array('value' => minutos_a_hhmm_display($totalGlobalMinutos),               'style' => ExcelExporter::STYLE_TOTALES);
-    $fila[] = array('value' => minutos_a_hhmm_display($totalGlobalEsperados),             'style' => ExcelExporter::STYLE_TOTALES);
-    $fila[] = array('value' => $globalSigno . minutos_a_hhmm_display(abs($globalDif)),    'style' => $globalDifStyle);
     $xlsx->addRow($fila);
 
     /* ── Ajuste de columnas y filas ──────────────────────────── */
@@ -398,13 +352,6 @@ try {
     $xlsx->setColWidth(1, 32.0);   // Nombre      → texto largo de persona
     $xlsx->setColWidth(2, 13.0);   // RUT         → formato XX.XXX.XXX-X
     $xlsx->setColWidth(3, 22.0);   // Departamento→ texto medio
-
-    // Columnas de resumen al final (índice = 4 + cantidad de días columna)
-    $idxResumen = 4 + count($diasColumna);
-    $xlsx->setColWidth($idxResumen,     11.0);  // Días Trabajados
-    $xlsx->setColWidth($idxResumen + 1, 12.0);  // Total Horas
-    $xlsx->setColWidth($idxResumen + 2, 13.0);  // Horas Esperadas
-    $xlsx->setColWidth($idxResumen + 3, 13.0);  // Diferencia
 
     /* ── Enviar al navegador ─────────────────────────────────── */
     if (ob_get_length()) ob_end_clean();
