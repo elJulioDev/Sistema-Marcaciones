@@ -331,6 +331,12 @@ if ($rut !== '') {
             text-align:center;
             color:#6b7280;
         }
+
+        /* Ocultar el logo en la vista normal de la web */
+        .print-logo {
+            display: none;
+        }
+        
         @media (max-width: 768px){
             .wrap{
                 padding:14px;
@@ -340,6 +346,150 @@ if ($rut !== '') {
             }
             .filters input[type="text"]{
                 min-width:100%;
+            }
+        }
+
+        /* --- ESTILOS PARA IMPRESIÓN / REPORTE TIPO EXCEL (VERTICAL) --- */
+        @media print {
+            /* Configurar página en vertical (portrait) */
+            @page { size: portrait; margin: 15mm; }
+            
+            /* 1. Limpiar fondos y resetear márgenes */
+            body { 
+                background: #ffffff !important; 
+                color: #000000 !important;
+                margin: 0 !important; 
+                padding: 0 !important;
+                height: auto !important; 
+                overflow: visible !important; 
+            }
+            
+            /* 2. Ocultar todo lo interactivo y decorativo */
+            .global-navbar, 
+            .filters, 
+            .btn-print,
+            button,
+            a { 
+                display: none !important; 
+            }
+            
+            /* 3. Eliminar el formato de las "tarjetas" (cards) */
+            .main-scroll { overflow: visible !important; height: auto !important; }
+            .wrap { padding: 0 !important; max-width: 100% !important; }
+            .card { 
+                box-shadow: none !important; 
+                border: none !important; 
+                padding: 0 !important; 
+                margin-bottom: 20px !important; 
+                background: transparent !important;
+            }
+            
+            /* 4. Formatear la caja de información del empleado como un encabezado formal */
+            .info-grid {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 20px !important;
+                border: 2px solid #000 !important;
+                padding: 10px 15px !important;
+                position: relative !important; /* Crucial para posicionar el logo */
+                padding-right: 120px !important; /* Deja un espacio vacío a la derecha para que el texto no pise el logo */
+            }
+            .print-logo {
+                display: block !important; /* Hace visible el logo en el PDF */
+                position: absolute !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important; /* Lo centra verticalmente perfecto */
+                right: 15px !important;
+                max-height: 60px !important; /* Límite de alto para que no deforme la caja */
+                max-width: 90px !important;
+                object-fit: contain !important;
+            }
+            .info-box {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+            .info-box strong { 
+                color: #000 !important; 
+                font-size: 10pt !important; 
+            }
+            .info-box div { 
+                color: #000 !important; 
+                font-size: 11pt !important; 
+                font-weight: bold !important;
+            }
+
+            /* 5. Transformar la tabla en un grid tipo Excel (Ajuste Vertical Perfecto) */
+            .table-wrap { overflow-x: visible !important; }
+            table {
+                width: 100% !important;
+                min-width: 0 !important; 
+                max-width: 100% !important;
+                border-collapse: collapse !important;
+                border: 2px solid #000 !important;
+                table-layout: fixed !important; /* Estricto control de anchos */
+            }
+            th, td {
+                box-sizing: border-box !important; /* Evita que el padding sume ancho extra */
+                border: 1px solid #000 !important;
+                padding: 4px 6px !important; 
+                font-size: 8pt !important; 
+                color: #000 !important;
+                background: #fff !important;
+                /* Control estricto de textos largos para que no se salgan */
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
+                vertical-align: middle !important;
+            }
+            th {
+                background-color: #e5e7eb !important;
+                font-weight: bold !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* --- OCULTAR COLUMNA "EDITADO" EN EL PDF --- */
+            th:nth-child(9), td:nth-child(9) { 
+                display: none !important; 
+            }
+
+            /* --- NUEVA DISTRIBUCIÓN DE COLUMNAS (Solo 8 columnas activas = 100%) --- */
+            th:nth-child(1), td:nth-child(1) { width: 14%; } /* Fecha */
+            th:nth-child(2), td:nth-child(2) { width: 6%; text-align: center !important; } /* Cant. */
+            th:nth-child(3), td:nth-child(3) { width: 16%; } /* Detalle marcaciones */
+            th:nth-child(4), td:nth-child(4) { width: 7%; text-align: center !important; } /* Entrada */
+            th:nth-child(5), td:nth-child(5) { width: 7%; text-align: center !important; } /* Salida */
+            th:nth-child(6), td:nth-child(6) { width: 7%; text-align: center !important; } /* Total */
+            th:nth-child(7), td:nth-child(7) { width: 13%; text-align: center !important; } /* Estado (Más grande para que quepa "INCOMPLETO" o "OBSERVADO") */
+            th:nth-child(8), td:nth-child(8) { width: 30%; } /* Observación (Espacio restante) */
+
+            /* 6. Quitar colores y formas de las insignias (Badges) y marcaciones */
+            .badge {
+                background: transparent !important;
+                color: #000 !important;
+                padding: 0 !important;
+                border: none !important;
+                font-weight: bold !important;
+            }
+            
+            /* Convertir los cuadritos de marcaciones en texto separado por comas */
+            .marcas {
+                display: inline !important;
+                gap: 0 !important;
+            }
+            .marca-item {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                display: inline !important;
+                font-family: inherit !important;
+            }
+            .marca-item::after {
+                content: ", "; /* Agrega una coma entre cada hora */
+            }
+            .marca-item:last-child::after {
+                content: ""; /* Quita la coma de la última hora */
             }
         }
     </style>
@@ -353,7 +503,7 @@ if ($rut !== '') {
     <div class="card">
         <h1>Consulta de marcaciones</h1>
 
-        <form method="get" class="filters">
+        <form method="get" class="filters" style="align-items: center;">
             <input
                 type="text"
                 name="rut"
@@ -369,6 +519,17 @@ if ($rut !== '') {
 
             <button type="submit">Consultar</button>
             <a class="secondary" href="consulta_marcaciones.php">Limpiar</a>
+
+            <?php if ($funcionario): ?>
+                <button type="button" class="btn-print" onclick="window.print()" style="margin-left: auto; background-color: #10b981; display: flex; align-items: center; gap: 6px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M6 9V2h12v7"></path>
+                        <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    Imprimir / Guardar PDF
+                </button>
+            <?php endif; ?>
         </form>
 
         <?php if ($error !== ''): ?>
@@ -379,6 +540,8 @@ if ($rut !== '') {
     <?php if ($funcionario): ?>
         <div class="card">
             <div class="info-grid">
+                <img src="static/img/logo.png" class="print-logo" alt="Logo Municipalidad">
+                
                 <div class="info-box">
                     <strong>Funcionario</strong>
                     <div><?php echo h($funcionario['nombre']); ?></div>
