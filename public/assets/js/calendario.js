@@ -140,7 +140,15 @@ document.getElementById('export-modal').addEventListener('click', function(e){
 
 /* ── Render: header ───────────────────────────────────────── */
 function renderHdr(d){
-    elTitle.textContent = d.mesLabel;
+    var title = d.mesLabel;
+    if(d.modo === 'semana'){
+        var sem = d.semana;
+        title = 'Semana '+d.numSemana+' · '+d.mesLabel;
+    } else if(d.modo === 'dia'){
+        title = formatFechaLarga(d.fechaSel);
+    }
+    elTitle.textContent = title;
+
     elBtnD.classList.toggle('on',   d.modo==='dia');
     elBtnSem.classList.toggle('on', d.modo==='semana');
     elBtnMes.classList.toggle('on', d.modo==='mes');
@@ -160,26 +168,6 @@ function renderHdr(d){
     var elToggleInput=document.getElementById('f-ausencias');
     elToggleInput.checked=S.ausencias;
     elToggle.classList.toggle('active', S.ausencias);
-
-    var wb    = document.getElementById('week-badge');
-    var mb    = document.getElementById('mes-badge');
-    var wbNum = document.getElementById('wbadge-num');
-    var wbRng = document.getElementById('wbadge-range');
-    var mbTxt = document.getElementById('mes-badge-text');
-
-    if(d.modo === 'semana'){
-        var sem     = d.semana;
-        var lunes   = sem[0];
-        var viernes = sem[4];
-        wbNum.textContent  = 'Sem. '+d.numSemana;
-        wbRng.textContent  = formatFechaCorta(lunes.fecha)+' → '+formatFechaCorta(viernes.fecha)+' '+lunes.fecha.split('-')[0];
-        wb.style.display='flex'; mb.style.display='none';
-    } else if(d.modo === 'mes'){
-        mbTxt.textContent = 'Mostrando todo '+d.mesLabel;
-        mb.style.display='flex'; wb.style.display='none';
-    } else {
-        wb.style.display='none'; mb.style.display='none';
-    }
 }
 
 /* ── Render: calendar ─────────────────────────────────────── */
@@ -242,17 +230,6 @@ function renderDay(d){
     var tabActiva='tp';
     if(S.ausencias){ p=[]; tabActiva='ta'; }
 
-    h += '<div class="mes-summary-hdr" style="flex-shrink:0; justify-content: flex-start; gap: 20px; padding-bottom: 16px;">';
-    h += '<div style="display:flex; flex-direction:column; gap:8px;">';
-    h += '<h2>'+esc(d.fechaDisplay)+'</h2>';
-    h += '</div>';
-
-    h += '<div class="mes-kpis" style="margin-left: auto;">';
-    h += '<div class="mes-kpi"><div class="kv">'+(d.presentes.length + a.length)+'</div><div class="kl">Total Empleados</div></div>';
-    h += '<div class="mes-kpi"><div class="kv" style="color:var(--grn)">'+d.presentes.length+'</div><div class="kl">Asistencias</div></div>';
-    h += '<div class="mes-kpi"><div class="kv" style="color:var(--red)">'+a.length+'</div><div class="kl">Faltas</div></div>';
-    h += '</div></div>';
-
     h+='<div class="tabs">';
     h+='<button class="tab '+(tabActiva==='tp'?'on':'')+'" data-tab="tp">Presentes ('+p.length+')</button>';
     h+='<button class="tab '+(tabActiva==='ta'?'on':'')+'" data-tab="ta">Ausentes ('+a.length+')</button>';
@@ -260,19 +237,17 @@ function renderDay(d){
 
     h+='<div id="tp" style="'+(tabActiva==='tp'?'':'display:none')+'">';
     if(!p.length){
-        h+='<div class="empty">Sin marcaciones para este día o restringido por el filtro.</div>';
+        h+='<div class="empty">Sin marcaciones para este dia o restringido por el filtro.</div>';
     } else {
-        h+='<div class="tw"><table class="simple-table"><thead><tr><th>Nombre</th><th>Dpto.</th><th class="tc">Marcas</th><th>Entrada</th><th>Salida</th><th>Total</th><th>Estado</th><th>Obs.</th><th></th></tr></thead><tbody>';
+        h+='<div class="tw"><table class="simple-table"><thead><tr><th>Nombre</th><th class="tc">#</th><th>Entrada</th><th>Salida</th><th>Total</th><th>Estado</th><th></th></tr></thead><tbody>';
         p.forEach(function(r){
             h+='<tr>';
             h+='<td class="tn">'+esc(r.nombre)+(+r.editado_manual?'<span class="edot" title="Editado manualmente"></span>':'')+'</td>';
-            h+='<td class="td2">'+esc(r.dpto)+'</td>';
             h+='<td class="tc tm">'+r.cantidad_marcaciones+'</td>';
             h+='<td class="tm">'+t5(r.entrada)+'</td>';
             h+='<td class="tm">'+t5(r.salida)+'</td>';
             h+='<td class="tt">'+t5(r.total_horas)+'</td>';
             h+='<td><span class="badge '+badgeCls(r.estado)+'">'+esc(r.estado)+'</span></td>';
-            h+='<td class="to">'+esc(r.observacion||'')+'</td>';
             h+='<td><a href="'+EDITAR_BASE+'id='+r.id+'" class="be">Editar</a></td>';
             h+='</tr>';
         });
@@ -323,18 +298,6 @@ function renderSemana(d){
         });
     });
 
-    h += '<div class="mes-summary-hdr" style="flex-shrink:0; justify-content: flex-start; gap: 20px; padding-bottom: 16px;">';
-    h += '<div style="display:flex; flex-direction:column; gap:8px;">';
-    h += '<h2>Semana '+d.numSemana+' · '+esc(d.mesLabel)+'</h2>';
-    h += '</div>';
-
-    h += '<div class="mes-kpis" style="margin-left: auto;">';
-    h += '<div class="mes-kpi"><div class="kv">'+emps.length+'</div><div class="kl">Empleados listados</div></div>';
-    h += '<div class="mes-kpi"><div class="kv" style="color:var(--grn)">'+totalPresencias+'</div><div class="kl">Asistencias</div></div>';
-    h += '<div class="mes-kpi"><div class="kv" style="color:var(--red)">'+totalFaltas+'</div><div class="kl">Faltas (Lun-Vie)</div></div>';
-    if(aus.length) h += '<div class="mes-kpi"><div class="kv" style="color:var(--t3)">'+aus.length+'</div><div class="kl">Inactivos</div></div>';
-    h += '</div></div>';
-
     if(!emps.length && !aus.length){
         h+='<div class="empty">Sin registros que coincidan con los filtros.</div>';
     } else {
@@ -359,7 +322,9 @@ function renderSemana(d){
                     var eu=EDITAR_BASE+'id='+c.id;
                     h+='<td class="mcl '+cc+' td-interactive">';
                     h+='<div class="normal-content" data-fecha="'+w.fecha+'">';
-                    h+='<div><span class="ct">'+t5(c.entrada)+'</span><span class="cs" style="margin:0 4px;">→</span><span class="ct">'+t5(c.salida)+'</span></div>';
+                    h+='<span class="ct">'+t5(c.entrada)+'</span>';
+                    h+='<span class="cs">a</span>';
+                    h+='<span class="ct">'+t5(c.salida)+'</span>';
                     if(c.total_horas) h+='<span class="ctot">'+t5(c.total_horas)+'</span>';
                     h+='</div>';
                     h+='<a class="hover-overlay" href="'+eu+'">'+iconEdit+'</a>';
@@ -446,26 +411,13 @@ function renderMes(d){
     var startIndex = (S.pagina - 1) * limit;
     var empsPagina = emps.slice(startIndex, startIndex + limit);
 
-    h += '<div class="mes-summary-hdr" style="flex-shrink:0; justify-content: flex-start; gap: 20px;">';
-
-    h += '<div style="display:flex; flex-direction:column; gap:8px;">';
-    h += '<h2>'+esc(d.mesLabel)+' <span style="font-weight:400;color:var(--t3);font-size:13px;">· '+dh+' días hábiles</span></h2>';
-
     if (totalPages > 1) {
-        h += '<div style="display:flex; align-items:center; gap:10px; background:var(--s1); padding:4px 8px; border-radius:var(--r2); border:1px solid var(--b0); width: max-content;">';
-        h += '<button class="ib" id="btn-prev-page" style="width:26px;height:26px;font-size:14px;" '+(S.pagina===1?'disabled':'')+'>&#8249;</button>';
-        h += '<span style="font-size:12px; font-weight:600; color:var(--t2);">Pág '+S.pagina+' de '+totalPages+'</span>';
-        h += '<button class="ib" id="btn-next-page" data-total="'+totalPages+'" style="width:26px;height:26px;font-size:14px;" '+(S.pagina===totalPages?'disabled':'')+'>&#8250;</button>';
+        h += '<div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:8px;">';
+        h += '<button class="ib" id="btn-prev-page" style="width:24px;height:24px;font-size:13px;" '+(S.pagina===1?'disabled':'')+'>&#8249;</button>';
+        h += '<span style="font-size:11px; font-weight:600; color:var(--t2);">Pág. '+S.pagina+' de '+totalPages+'</span>';
+        h += '<button class="ib" id="btn-next-page" data-total="'+totalPages+'" style="width:24px;height:24px;font-size:13px;" '+(S.pagina===totalPages?'disabled':'')+'>&#8250;</button>';
         h += '</div>';
     }
-    h += '</div>';
-
-    h += '<div class="mes-kpis" style="margin-left: auto;">';
-    h += '<div class="mes-kpi"><div class="kv">'+totalEmps+'</div><div class="kl">Empleados listados</div></div>';
-    h += '<div class="mes-kpi"><div class="kv" style="color:var(--grn)">'+totalPresencias+'</div><div class="kl">Asistencias</div></div>';
-    h += '<div class="mes-kpi"><div class="kv" style="color:var(--red)">'+totalFaltas+'</div><div class="kl">Faltas (Lun-Vie)</div></div>';
-    if(aus.length) h += '<div class="mes-kpi"><div class="kv" style="color:var(--t3)">'+aus.length+'</div><div class="kl">Inactivos</div></div>';
-    h += '</div></div>';
 
     if(!totalEmps && !aus.length){
         elCard.innerHTML = h + '<div class="empty">No hay empleados que presenten inasistencias de Lunes a Viernes este mes.</div>';
@@ -475,10 +427,10 @@ function renderMes(d){
     h += '<div class="dcard-body" style="padding:0;">';
     h += '<table class="mt" style="min-width:100%; table-layout:fixed;">';
     h += '<thead><tr>';
-    h += '<th style="text-align:left; width:200px; border-right:1px solid var(--b0);">Empleado</th>';
+    h += '<th style="text-align:left; width:200px;">Empleado</th>';
     var diasNombres = ['LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO','DOMINGO'];
     for(var i=0; i<7; i++){
-        h += '<th style="text-align:center; border-right:1px solid var(--b0); font-size:10px;">'+diasNombres[i]+'</th>';
+        h += '<th style="text-align:center;">'+diasNombres[i]+'</th>';
     }
     h += '</tr></thead><tbody>';
 
@@ -494,7 +446,7 @@ function renderMes(d){
             h += '<tr>';
 
             if(wIdx === 0){
-                h += '<td rowspan="'+semanas.length+'" style="vertical-align:top; border-right:1px solid var(--b0); border-bottom: 2px solid var(--b1); background:var(--s1);">';
+                h += '<td rowspan="'+semanas.length+'" style="vertical-align:top; border-bottom: 2px solid var(--b1); background:var(--s1);">';
                 h += '<div class="men">'+esc(emp.nombre)+'</div>';
                 h += '<div class="med">'+esc(emp.dpto)+' · '+esc(emp.numero)+'</div>';
                 h += '</td>';
@@ -519,26 +471,24 @@ function renderMes(d){
                     else if(S.ausencias && esDiaHabil) tdClass += 'mer';
                     else tdClass += 'mem';
 
-                    var bgStyle = '';
-                    if(!c && S.ausencias && esDiaHabil) bgStyle = 'background:var(--rdg);';
-                    else if(dia.hoy) bgStyle = 'background:var(--blg);';
-
-                    h += '<td class="'+tdClass+'" style="'+rowBorder+' border-right:1px solid var(--b0); '+bgStyle+'">';
-                    h += '<div class="normal-content" data-fecha="'+dia.fecha+'" style="position:relative;">';
-                    h += '<span style="font-size:10px; font-weight:800; color:var(--t3); position:absolute; top:4px; left:6px; line-height:1;">'+dia.num+'</span>';
+                    h += '<td class="'+tdClass+'" style="'+rowBorder+'">';
+                    h += '<div class="normal-content" data-fecha="'+dia.fecha+'">';
+                    h += '<span class="mday-num">'+dia.num+'</span>';
 
                     if(c){
-                        h += '<div style="display:flex; align-items:center; margin-top:8px;"><span class="ct">'+t5(c.entrada)+'</span><span class="cs" style="margin:0 4px;">→</span><span class="ct">'+t5(c.salida)+'</span></div>';
-                        if(c.total_horas) h += '<span class="ctot" style="margin-top:0;">'+t5(c.total_horas)+'</span>';
+                        h += '<span class="ct">'+t5(c.entrada)+'</span>';
+                        h += '<span class="cs">a</span>';
+                        h += '<span class="ct">'+t5(c.salida)+'</span>';
+                        if(c.total_horas) h += '<span class="ctot">'+t5(c.total_horas)+'</span>';
                     } else {
-                        if(S.ausencias && esDiaHabil) h += '<span class="ct" style="color:var(--red); font-size:11px; margin-top:8px;">FALTÓ</span>';
-                        else h += '<span class="ct" style="margin-top:8px;">—</span>';
+                        if(S.ausencias && esDiaHabil) h += '<span class="ct" style="color:var(--red);">FALTÓ</span>';
+                        else h += '<span class="ct">—</span>';
                     }
                     h += '</div>';
                     h += '<a class="hover-overlay" href="'+editUrl+'">'+iconEdit+'</a>';
                     h += '</td>';
                 } else {
-                    h += '<td style="'+rowBorder+' border-right:1px solid var(--b0); background:var(--s2); opacity:0.5;"></td>';
+                    h += '<td style="'+rowBorder+' background:var(--s2); opacity:0.5;"></td>';
                 }
             }
             h += '</tr>';
@@ -548,8 +498,8 @@ function renderMes(d){
     h += '</tbody></table>';
 
     if(aus.length){
-        h += '<div class="ass" style="margin:20px 16px 16px 16px; border-top:1px solid var(--b0); padding-top:16px;">';
-        h += '<div class="asttl" style="color:var(--t3);">Empleados Inactivos este mes ('+aus.length+')</div>';
+        h += '<div class="ass">';
+        h += '<div class="asttl">Empleados Inactivos este mes ('+aus.length+')</div>';
         h += '<div class="asg">';
         aus.forEach(function(r){
             h += '<div class="asi" style="border-left-color:var(--b2);"><div class="n">'+esc(r.nombre)+'</div><div class="m">'+esc(r.dpto)+' · '+esc(r.numero)+'</div></div>';
@@ -666,13 +616,31 @@ document.getElementById('f-ausencias').addEventListener('change',function(e){
 
 /* ── Exportar (con modal) ─────────────────────────────────── */
 document.getElementById('btn-exp-sem').addEventListener('click', function(){
+    closeExportMenu();
     showExportModal('semana');
 });
 document.getElementById('btn-exp-mes').addEventListener('click', function(){
+    closeExportMenu();
     showExportModal('mes');
 });
 document.getElementById('btn-exp-horas').addEventListener('click', function(){
+    closeExportMenu();
     showExportModal('horas');
+});
+
+/* ── Export dropdown ──────────────────────────────────────── */
+var expMenu = document.getElementById('export-menu');
+var expToggle = document.getElementById('btn-export-toggle');
+
+function closeExportMenu(){ expMenu.classList.remove('open'); }
+
+expToggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    expMenu.classList.toggle('open');
+});
+
+document.addEventListener('click', function(e){
+    if(!e.target.closest('.exp-dd')) closeExportMenu();
 });
 
 /* ── Search debounce ─────────────────────────────────────────*/
