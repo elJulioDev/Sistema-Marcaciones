@@ -11,10 +11,19 @@ USE `marcaciones`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
-TRUNCATE TABLE `marcaciones`;
-TRUNCATE TABLE `marcaciones_resumen`;
-TRUNCATE TABLE `marcaciones_importaciones`;
-TRUNCATE TABLE `usuarios_sistema`;
+-- Se usa DELETE (y no TRUNCATE) para no depender de FOREIGN_KEY_CHECKS en el
+-- orden de vaciado; el orden hijo→padre evita conflictos aunque estén activas.
+DELETE FROM `marcaciones`;
+DELETE FROM `marcaciones_resumen`;
+DELETE FROM `marcaciones_importaciones`;
+DELETE FROM `usuarios_sistema`;
+
+ALTER TABLE `marcaciones`             AUTO_INCREMENT = 1;
+ALTER TABLE `marcaciones_resumen`     AUTO_INCREMENT = 1;
+ALTER TABLE `marcaciones_importaciones` AUTO_INCREMENT = 1;
+ALTER TABLE `usuarios_sistema`        AUTO_INCREMENT = 1;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- Usuarios de demostración
 INSERT INTO `usuarios_sistema` (`rut`,`password`,`nombre`,`rol`,`activo`) VALUES
