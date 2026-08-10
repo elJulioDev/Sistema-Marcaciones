@@ -27,6 +27,115 @@ body {
     padding: 0 1rem;
 }
 
+.container.wide {
+    max-width: 1500px;
+}
+
+/* ─── Panel (tarjetas de módulos) ─── */
+
+.panel-head {
+    margin: 2rem 0 1.5rem;
+    text-align: center;
+}
+
+.panel-head h1 {
+    margin-bottom: 0.25rem;
+    font-size: 1.6rem;
+}
+
+.panel-head p {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+}
+
+.panel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .panel-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.panel-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.panel-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px -6px rgba(37, 99, 235, 0.12);
+    border-color: #bfdbfe;
+}
+
+.panel-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.panel-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.panel-calendario .panel-icon { background: #dcfce7; color: #166534; }
+.panel-importar .panel-icon { background: #dbeafe; color: #2563eb; }
+.panel-observaciones .panel-icon { background: #fef3c7; color: #d97706; }
+.panel-consulta .panel-icon { background: #f3e8ff; color: #9333ea; }
+
+.panel-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.panel-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.panel-desc {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.panel-arrow {
+    color: #9ca3af;
+    flex-shrink: 0;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.panel-card:hover .panel-arrow {
+    color: var(--color-primary);
+    transform: translateX(3px);
+}
+
 /* ── Header ─────────────────────────────── */
 .app-header {
     background: var(--color-surface);
