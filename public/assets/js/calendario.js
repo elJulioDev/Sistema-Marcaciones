@@ -84,7 +84,7 @@ function showExportModal(type){
         rlabel.textContent = 'Semana ' + weekNum + ' · ' + mesL;
         rval.textContent = formatFechaLarga(lunes.fecha) + '  →  ' + formatFechaLarga(ultimoDia.fecha);
         note.textContent = 'Se exportará un archivo con los empleados que faltaron de Lunes a Viernes, incluyendo el fin de semana si hubo asistencia.';
-        _exportUrl = BASE_APP+'/exportar_inasistencias.php?rango=semana&mes='+S.mes+'&fecha='+S.fecha;
+        _exportUrl = BASE_APP+'/exportar/inasistencias?rango=semana&mes='+S.mes+'&fecha='+S.fecha;
 
     } else if(type === 'mes'){
         var mesPartes = S.mes.split('-');
@@ -101,7 +101,7 @@ function showExportModal(type){
         rlabel.textContent = nombreMes + ' ' + mesPartes[0];
         rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
         note.textContent = 'Se exportará un archivo con los empleados que faltaron al menos un día hábil, añadiendo columnas extra para los fines de semana con actividad.';
-        _exportUrl = BASE_APP+'/exportar_inasistencias.php?rango=mes&mes='+S.mes+'&fecha='+S.fecha;
+        _exportUrl = BASE_APP+'/exportar/inasistencias?rango=mes&mes='+S.mes+'&fecha='+S.fecha;
 
     } else if(type === 'horas'){
         var mesPartes = S.mes.split('-');
@@ -118,7 +118,7 @@ function showExportModal(type){
         rlabel.textContent = nombreMes + ' ' + mesPartes[0] + ' — Todos los funcionarios';
         rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
         note.textContent = 'Se exportará un Excel con TODOS los funcionarios: horas por día, total trabajado, horas esperadas y diferencia (+/−) respecto al mes completo.';
-        _exportUrl = BASE_APP+'/exportar_horas_mes.php?mes='+S.mes+'&dpto='+encodeURIComponent(S.dpto)+'&q='+encodeURIComponent(S.q);
+        _exportUrl = BASE_APP+'/exportar/horas-mes?mes='+S.mes+'&dpto='+encodeURIComponent(S.dpto)+'&q='+encodeURIComponent(S.q);
     }
     modal.classList.add('open');
 }

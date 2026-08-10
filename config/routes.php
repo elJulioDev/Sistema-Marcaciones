@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controllers\AuthController;
 use App\Controllers\CalendarioController;
 use App\Controllers\ConsultaController;
+use App\Controllers\ExportarController;
 use App\Controllers\ImportacionController;
 use App\Controllers\MarcacionController;
 use App\Controllers\MesController;
@@ -24,6 +25,9 @@ $router->get('/consulta', [ConsultaController::class, 'index'], 'login');
 $router->get('/calendario', [CalendarioController::class, 'index'], 'login');
 
 $router->get('/observaciones', [ObservacionesController::class, 'index'], 'login');
+
+$router->get('/exportar/inasistencias', [ExportarController::class, 'inasistencias'], 'login');
+$router->get('/exportar/horas-mes', [ExportarController::class, 'horasMes'], 'login');
 
 $router->get('/importar', [ImportacionController::class, 'index'], 'login');
 $router->post('/importar/importar', [ImportacionController::class, 'importar'], 'login');
