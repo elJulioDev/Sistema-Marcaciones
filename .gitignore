@@ -1,7 +1,23 @@
+# ── Configuración de entorno ────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Archivos locales obligatorios (legado plano; se eliminan en la reestructuración) ──
 inc/db.php
+auth.php
+hash.php
+
+# ── Logs y caché ────────────────────────────────────────────
+*.log
+error_log
+storage/logs/*
+
+# ── Datos locales de prueba (legado, no públicos) ───────────
 *.txt
 generador_datos.php
 datos/*
-auth.php
-hash.php
-error_log
+
+# ── SO ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

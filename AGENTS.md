@@ -1,6 +1,58 @@
 # AGENTS.md
 
-Sistema de asistencia municipal (Municipalidad de Coltauco). PHP plano, sin framework.
+Sistema de Marcaciones — control de asistencia. Uso público y escalable (dejó de ser específico de Coltauco).
+
+## ⚠️ REESTRUCTURACIÓN EN CURSO
+
+Se está transformando el sistema de un montón de páginas PHP planas a una arquitectura profesional. **Hasta que se complete la migración, las secciones de abajo describen el estado LEGADO que aún convive en la raíz.** Actualizar esta sección al cerrar cada fase.
+
+### Objetivo
+- Sistema genérico (sin marca Coltauco), PHP 8 moderno, configuración vía `.env`, estructura por capas.
+- Sin Composer: mantener cero dependencias externas (autoloader propio `spl_autoload_register`).
+- Naming confirmado con el usuario: DB `marcaciones`, `BASE_URL=/Sistema-Marcaciones` (el `.env` con `sistema_bodega` fue copy-paste y NO se usa).
+
+### Estructura objetivo
+```
+public/            # Document root (front controller + .htaccess + assets)
+  index.php        # bootstrap + Router
+  .htaccess        # reescritura al front controller
+  assets/          # css/js/img (migra desde static/)
+app/
+  Core/            # Env, Database, Router, Auth/Sesión, Controller base, View
+  Controllers/     # Auth, Panel, Calendario, Importacion, Observaciones, Marcacion, Consulta, Mes, Exportar*
+  Models/          # Marcacion, MarcacionResumen, MarcacionImportacion, Usuario
+  Services/        # ImportadorMarcaciones (NDJSON), ExcelExporter, Helpers RUT/fecha/hora
+  Views/           # layouts/ + vistas por módulo
+config/
+  routes.php
+database/
+  schema.sql       # esquema público (ya existe)
+  schema_demo.sql  # datos demo públicos (ya existe, julio 2026, admin/admin123)
+storage/logs/
+.env / .env.example
+```
+
+### Fases
+1. **Fundación (hecha):** `.env.example`, `database/schema_demo.sql`, `.gitignore` actualizado, este plan.
+2. **Core:** cargador de `.env`, `Database` (PDO singleton desde `.env`), autoloader, `public/index.php` + `Router`, helper `BASE_URL` (todas las URLs/assets lo usan), layouts.
+3. **Auth y roles:** `AuthController` (login/logout), middleware de sesión + control real de roles `admin`/`operador` (hoy solo se documenta, no se aplica), navbar en layout.
+4. **Migración de módulos** a Controllers/Models/Views: panel, consulta, calendario, observaciones, editar resumen, eliminar mes.
+5. **Importación:** mover lógica NDJSON a `Services/ImportadorMarcaciones` (parseo, dedup md5, `INSERT IGNORE` lotes 500, `recalcular_parcial`), endpoint JSON.
+6. **Exportadores:** mover `inc/xlsx_generator.php` a `Services/ExcelExporter`, controladores de exportación.
+7. **Des-rotulación:** quitar textos/logo/footer Coltauco, `README.md` nuevo.
+8. **Limpieza/QA:** borrar archivos planos de la raíz (`login.php`, `panel.php`, `inc/db.php`, `auth.php`, `hash.php`, `navbar.php`, etc.), `php -l` global, probar flujo completo.
+
+### Reglas nuevas desde aquí
+- PHP 8.x (XAMPP 8.2), `declare(strict_types=1)`; usar `??`, arrow functions, types.
+- Todo el código nuevo lee configuración de `.env` vía `Core/Env` — **nada hardcodeado** (host, credenciales, nombre de BD, `BASE_URL`, zona horaria).
+- Helpers centralizados (RUT, hora, fecha, `h()`) en `app/Services` — nunca duplicarlos por archivo.
+- URL base siempre vía `BASE_URL` (assets, links, redirects).
+
+---
+
+## Estado actual (LEGADO — plano, será reemplazado)
+
+Sistema de asistencia municipal. PHP plano, sin framework.
 
 ## Entorno
 - PHP 5.6+, Apache/XAMPP, MariaDB. Sin Composer, sin build/lint/test pipeline. Verificación mínima: `php -l <archivo>`.
