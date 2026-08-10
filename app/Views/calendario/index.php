@@ -3,28 +3,14 @@
 declare(strict_types=1);
 
 use App\Core\View;
-?>
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Marcaciones — Calendario</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="<?= base_url('/assets/img/favicon.svg') ?>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="<?= base_url('/assets/css/app.css') ?>">
-<link rel="stylesheet" href="<?= base_url('/assets/css/calendario.css') ?>">
-</head>
-<body class="cal-body">
-<?= View::partial('layouts/partials/navbar', ['activeNav' => 'calendario']) ?>
 
+ob_start(); ?>
 <div class="app" id="app">
   <div class="hdr">
     <div class="mnav">
-      <button class="ib" id="btn-prev">&#8249;</button>
+      <button class="ib" id="btn-prev" aria-label="Mes anterior">&#8249;</button>
       <h1 id="month-title"></h1>
-      <button class="ib" id="btn-next">&#8250;</button>
+      <button class="ib" id="btn-next" aria-label="Mes siguiente">&#8250;</button>
     </div>
     <button class="pill" id="btn-today">Hoy</button>
 
@@ -53,7 +39,7 @@ use App\Core\View;
         <div class="li"><span class="lb" style="background:var(--amb)"></span>Incidencias</div>
         <div class="li"><span class="lb" style="background:var(--sky)"></span>Observado</div>
         <div class="li"><span class="lb" style="background:var(--red)"></span>Error</div>
-        <div class="li"><span class="lb" style="background:rgba(37,99,235,.25);border:1px solid rgba(37,99,235,.4)"></span>Seleccion.</div>
+        <div class="li"><span class="lb" style="background:var(--blg);border:1px solid rgba(var(--color-primary-rgb),.4)"></span>Seleccion.</div>
       </div>
     </div>
 
@@ -125,6 +111,37 @@ window.CAL_CONFIG = {
     editarBase: <?= json_encode(base_url('/marcacion/editar') . '?') ?>
 };
 </script>
+<?php $contenidoCalendario = ob_get_clean(); ?>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Marcaciones — Calendario</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="<?= base_url('/assets/img/favicon.svg') ?>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= base_url('/assets/css/app.css') ?>">
+<script>
+try {
+    var t = localStorage.getItem('sm-theme')
+        || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.setAttribute('data-bs-theme', t);
+} catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+</script>
+</head>
+<body class="cal-body page-fill">
+<?= View::partial('layouts/partials/chrome', [
+    'content'      => $contenidoCalendario,
+    'activeNav'    => 'calendario',
+    'pageTitle'    => 'Calendario de marcaciones',
+    'contentClass' => 'chrome-main--fill',
+]) ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= base_url('/assets/js/app.js') ?>" defer></script>
 <script src="<?= base_url('/assets/js/calendario.js') ?>" defer></script>
 </body>
 </html>

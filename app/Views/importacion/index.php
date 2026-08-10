@@ -3,23 +3,8 @@
 declare(strict_types=1);
 
 use App\Core\View;
-?>
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Importar Marcaciones</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="<?= base_url('/assets/img/favicon.svg') ?>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="<?= base_url('/assets/css/app.css') ?>">
-<link rel="stylesheet" href="<?= base_url('/assets/css/importar.css') ?>">
-</head>
-<body class="imp-body">
-<?= View::partial('layouts/partials/navbar', ['activeNav' => 'importar']) ?>
 
-<div class="main-scroll">
+ob_start(); ?>
 <div class="wrap">
 
 <div class="card" id="upload-card">
@@ -169,7 +154,7 @@ use App\Core\View;
   </div>
 </div>
 
-</div></div>
+</div>
 
 <script>
 window.IMPORT_CONFIG = {
@@ -178,6 +163,37 @@ window.IMPORT_CONFIG = {
     observacionesUrl: <?= json_encode(base_url('/observaciones')) ?>
 };
 </script>
+<?php $contenidoImportacion = ob_get_clean(); ?>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Importar Marcaciones</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="<?= base_url('/assets/img/favicon.svg') ?>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= base_url('/assets/css/app.css') ?>">
+<script>
+try {
+    var t = localStorage.getItem('sm-theme')
+        || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.setAttribute('data-bs-theme', t);
+} catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+</script>
+</head>
+<body class="imp-body page-fill">
+<?= View::partial('layouts/partials/chrome', [
+    'content'      => $contenidoImportacion,
+    'activeNav'    => 'importar',
+    'pageTitle'    => 'Importar marcaciones',
+    'contentClass' => 'chrome-main--fill',
+]) ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= base_url('/assets/js/app.js') ?>" defer></script>
 <script src="<?= base_url('/assets/js/importar.js') ?>" defer></script>
 </body>
 </html>

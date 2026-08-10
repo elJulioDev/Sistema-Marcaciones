@@ -65,6 +65,16 @@ Middleware en `Router` (3er parámetro de `get`/`post`): `null` pública, `'logi
 - `Router` resta `BASE_URL` del `REQUEST_URI` para obtener la ruta; toda URL/asset se genera con `base_url()`.
 - Patrón para endpoints binarios (descargas): el controlador escribe `header()` + echo y termina con `exit` (`never`), limpiando antes el buffer de salida.
 
+## Referencia de diseño (Sistema de Bodega)
+
+El shell (sidebar, topbar y contenido) replica el lenguaje visual de `/opt/lampp/htdocs/Sistema-Bodega/` (vista `inc/header.php` y `static/css/app.css`):
+
+- Sidebar oscuro sólido con secciones de navegación (`nav-section`) e ítem activo con barra de acento lateral (`.nav-link.active::before`).
+- Topbar con línea inferior de acento (2px), breadcrumb (`.topbar-breadcrumb`), selector de tema claro/oscuro/auto (dropdown `[data-theme-option]`) y píldora de usuario con avatar en degradado.
+- `page-header` con icono en degradado, `section-title` en mayúsculas con línea y th de tablas en mayúsculas (`--table-header-bg`).
+- Preferencia de tema en `localStorage['sm-theme']` (light/dark/auto); el atributo inicial se aplica inline en el `<head>` para evitar FOUC.
+- Estado del colapso del sidebar en `localStorage['sm-sidebar-collapsed']`, aplicado como `html[data-sidebar-collapsed="1"]` ANTES de renderizar (sin parpadeo entre páginas); solo en escritorio (≥992px).
+
 ## Lógica de negocio (no obvia)
 
 - Estados de `marcaciones_resumen.estado`: `OK` = 2 marcas con entrada < salida · `OBSERVADO` = 3+ marcas · `INCOMPLETO` = 1 marca · `ERROR` = salida anterior a entrada o solo salida.

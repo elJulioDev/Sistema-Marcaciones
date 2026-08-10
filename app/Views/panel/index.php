@@ -1,8 +1,22 @@
-<section class="panel-head">
-    <h1>Sistema de Marcaciones</h1>
-    <p>Selecciona un módulo para comenzar a trabajar.</p>
-</section>
+<?php
 
+declare(strict_types=1);
+
+$fechaActual = new DateTimeImmutable();
+$nombreDia   = nombre_dia_es($fechaActual->format('Y-m-d'));
+?>
+<div class="page-header">
+    <div class="page-header-title">
+        <span class="page-header-icon"><i class="bi bi-speedometer2"></i></span>
+        <div>
+            <h1>Bienvenido, <?= h(\App\Core\Auth::nombre()) ?></h1>
+            <p class="page-header-sub">Gestiona la asistencia del personal: revisa el calendario de marcaciones, importa archivos de los relojes y corrige incidencias.</p>
+        </div>
+    </div>
+    <span class="page-header-date"><i class="bi bi-calendar2-week"></i><?= $nombreDia ?> <?= $fechaActual->format('d/m/Y') ?></span>
+</div>
+
+<div class="section-title">Acceso rápido</div>
 <div class="panel-grid">
     <a href="<?= base_url('/calendario') ?>" class="panel-card panel-calendario">
         <span class="panel-icon">

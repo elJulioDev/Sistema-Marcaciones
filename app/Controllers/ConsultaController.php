@@ -35,7 +35,6 @@ final class ConsultaController extends Controller
         return $this->view('consulta/index', [
             'title'      => 'Consulta de marcaciones',
             'activeNav'  => 'consulta',
-            'styles'     => ['/assets/css/modulos.css'],
             'rut'        => $rut,
             'periodo'    => $periodo,
             'error'      => $error,

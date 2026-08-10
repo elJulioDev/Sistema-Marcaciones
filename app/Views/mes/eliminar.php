@@ -45,7 +45,7 @@ declare(strict_types=1);
     <?php if ($errorLista !== ''): ?>
         <div class="alert err">Error al cargar la tabla de importaciones: <?= h($errorLista) ?></div>
     <?php else: ?>
-        <div class="table-wrap">
+        <div class="table-wrap table-wrap--box table-wrap--compact">
             <?php if (count($importaciones) > 0): ?>
                 <table>
                     <thead>

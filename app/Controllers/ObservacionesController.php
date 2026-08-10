@@ -32,7 +32,6 @@ final class ObservacionesController extends Controller
         return $this->view('observaciones/index', [
             'title'                => 'Observaciones de marcaciones',
             'activeNav'            => 'observaciones',
-            'styles'               => ['/assets/css/modulos.css', '/assets/css/observaciones.css'],
             'filtroEstado'         => $filtroEstado,
             'q'                    => $q,
             'periodo'              => $periodo,

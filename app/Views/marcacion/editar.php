@@ -84,7 +84,7 @@ $estadoClase = [
                     type="text"
                     value="<?= h((string) $registro['total_horas']) ?>"
                     readonly
-                    style="background:#f3f4f6;"
+                    style="background:var(--color-surface-3);"
                 >
             </div>
             <div class="full">

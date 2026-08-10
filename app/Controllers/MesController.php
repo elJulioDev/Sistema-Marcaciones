@@ -69,7 +69,6 @@ final class MesController extends Controller
         return $this->view('mes/eliminar', [
             'title'         => 'Eliminar Marcaciones por Mes',
             'activeNav'     => 'eliminar-mes',
-            'styles'        => ['/assets/css/mes.css'],
             'mensaje'       => $mensaje,
             'error'         => $error,
             'importaciones' => $importaciones,

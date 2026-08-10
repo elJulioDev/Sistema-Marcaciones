@@ -129,7 +129,6 @@ final class MarcacionController extends Controller
         return $this->view('marcacion/editar', [
             'title'     => 'Editar marcación resumen',
             'activeNav' => 'observaciones',
-            'styles'    => ['/assets/css/modulos.css'],
             'registro'  => $registro,
             'mensaje'   => $mensaje,
             'error'     => $error,
