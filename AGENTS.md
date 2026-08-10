@@ -21,7 +21,7 @@ app/
   Core/            # Env, Database, Router, Controller base, View
   Controllers/     # Auth, Panel, Calendario, Importacion, Observaciones, Marcacion, Consulta, Mes, Exportar*
   Models/          # Marcacion, MarcacionResumen, MarcacionImportacion, Usuario
-  Services/        # ImportadorMarcaciones (NDJSON), ExcelExporter
+  Services/        # ImportadorMarcaciones (NDJSON), ExcelExporter, ExportadorInasistencias, ExportadorHorasMes
   Support/         # helpers globales: h(), base_url(), RUT, fecha, hora
   Views/           # layouts/ + vistas por módulo
 config/
@@ -40,7 +40,7 @@ storage/logs/
 4. **Migración de módulos (hecha):** controllers/models/vistas para panel, consulta, calendario, observaciones, editar resumen, eliminar mes. Rutas `/marcacion/editar`, `/eliminar-mes` (admin).
 5. **Importación (hecha):** lógica NDJSON en `Services/ImportadorMarcaciones` (parseo, dedup md5, `INSERT IGNORE` lotes 500, `recalcular_parcial` respeta `editado_manual=1`), endpoint JSON `POST /importar/importar`.
 6. **Exportadores (hecha):** `inc/xlsx_generator.php` movido a `Services/ExcelExporter` (mismo generador sin librerías: ZipArchive → PurePhpZip → CsvWriter); `Services/ExportadorInasistencias` y `Services/ExportadorHorasMes` (lógica portada de los archivos raíz) + `Controllers/ExportarController`. Rutas `GET /exportar/inasistencias?rango=...&mes=...&fecha=...` y `GET /exportar/horas-mes?mes=...&dpto=...&q=...` (auth `login`). `calendario.js` apunta a las rutas nuevas.
-7. **Des-rotulación:** quitar textos/logo/footer Coltauco, `README.md` nuevo.
+7. **Des-rotulación:** la app nueva (`app/` + `public/`) ya no tiene textos Coltauco (verificado). Pendiente: `README.md` nuevo genérico y `database/schema.sql` (quitar comentario "Municipalidad de Coltauco" de la cabecera). La marca en `login.php`/`navbar.php` se elimina con los archivos planos en la Fase 8, no se re-rotula.
 8. **Limpieza/QA:** borrar archivos planos de la raíz (`login.php`, `panel.php`, `inc/db.php`, `auth.php`, `hash.php`, `navbar.php`, etc.), `php -l` global, probar flujo completo.
 
 ### Gotchas del front controller (Apache/XAMPP)
@@ -56,39 +56,30 @@ storage/logs/
 
 ---
 
-## Estado actual (LEGADO — plano, será reemplazado)
+## Estado actual del código (tras Fase 6)
 
-Sistema de asistencia municipal. PHP plano, sin framework.
+Conviven dos capas: el legado plano (raíz) y la app migrada (`public/` + `app/`). Las Fases 1-6 migraron estos módulos a rutas propias en `config/routes.php`:
 
-## Entorno
-- PHP 5.6+, Apache/XAMPP, MariaDB. Sin Composer, sin build/lint/test pipeline. Verificación mínima: `php -l <archivo>`.
-- Todo el código, UI, comentarios y commits están en español — mantener esa convención.
-- No hay dump SQL en el repo: el esquema de 4 tablas (`marcaciones`, `marcaciones_resumen`, `marcaciones_importaciones`, `usuarios_sistema`) solo está documentado en `README.md`.
+- login/logout (`/login`, `/logout`), panel (`/`), consulta (`/consulta`), calendario (`/calendario`), observaciones (`/observaciones`), importación (`/importar`), exportadores (`/exportar/inasistencias`, `/exportar/horas-mes`), editar marcación (`/marcacion/editar`), eliminar mes (`/eliminar-mes`).
+- Los archivos planos equivalentes SIGUEN en la raíz y Apache los sirve directo (coexisten); se eliminarán en la Fase 8.
 
-## Archivos locales obligatorios (gitignore — no existen en el repo)
-- `inc/db.php` — debe definir `function db()` que devuelva un singleton PDO (MySQL, utf8mb4, ERRMODE_EXCEPTION).
-- `auth.php` — guardia de sesión: `session_start()` + redirect a `login.php` si falta `$_SESSION['usuario_id']`.
-- `hash.php` — script local para crear el primer usuario admin con `password_hash()`.
-- Cada página protegida empieza con `require_once __DIR__ . '/inc/db.php'; require_once __DIR__ . '/auth.php';`. `login.php` es la única página sin `auth.php`. No hay bootstrapping centralizado.
+### Legado que aún existe en la raíz (se borra en Fase 8)
+- Páginas planas: `login.php`, `panel.php`, `calendario_marcaciones.php`, `consulta_marcaciones.php`, `observaciones_marcaciones.php`, `editar_marcacion_resumen.php`, `eliminar_mes.php`, `importar_marcaciones.php`, `exportar_horas_mes.php`, `exportar_inasistencias.php`, `logout.php`.
+- Soporte: `auth.php`, `hash.php`, `navbar.php`.
+- `inc/` (gitignored): `db.php` (define `db()`), `xlsx_generator.php` (ya migrado a `Services/ExcelExporter`).
+- `static/` (css/img legados).
 
-## Convenciones de código
-- No hay archivo de helpers compartidos: `h()`, `normalizar_rut()`, `validar_rut()`, `formatear_rut()`, `hms_a_minutos()`, `minutos_a_hhmm_display()`, `nombre_dia_es()` se duplican en cada página. Para un archivo nuevo, copiar la versión de una página existente.
-- Compatibilidad PHP 5.6 es restricción dura (hubo un commit de fix explícito). Los exportadores usan `array(...)`; NO usar `??`, arrow functions ni tipos escalares declarados.
-- RUT chileno: `normalizar_rut()` quita puntos/guiones/espacios; la importación guarda `rut_base` = número sin el dígito verificador.
+### Marca Coltauco restante (alcance de Fase 7)
+- `README.md` (línea 4): texto municipal → reemplazar por README genérico.
+- `database/schema.sql`: comentario "Municipalidad de Coltauco" en la cabecera.
+- `login.php` (líneas 59 y 127) y `navbar.php` (línea 334, "RRHH Coltauco"): texto en páginas planas que se borrarán en Fase 8 — no re-rotular, solo borrar.
+- La app nueva (`app/` + `public/`) NO tiene texto Coltauco (verificado).
+
+### Convenciones del legado (solo aplican a los archivos planos que queden)
+- Compatibilidad PHP 5.6 es restricción dura (hubo un commit de fix explícito). `array(...)`, sin `??`, arrow functions ni tipos escalares declarados. No duplicar helpers en código nuevo.
+- Cada página plana protegida empieza con `require_once __DIR__ . '/inc/db.php'; require_once __DIR__ . '/auth.php';`. `login.php` es la única sin `auth.php`.
 
 ## Lógica de negocio (no obvia)
 - Estados de `marcaciones_resumen.estado`: `OK` = 2 marcas con entrada < salida · `OBSERVADO` = 3+ marcas · `INCOMPLETO` = 1 marca · `ERROR` = salida anterior a entrada o solo salida.
 - `editado_manual = 1` protege ediciones manuales ante reimportaciones: `recalcular_parcial()` usa `INSERT ... ON DUPLICATE KEY UPDATE` que NO pisa filas marcadas como manuales.
-
-## Importación (`importar_marcaciones.php`)
-- Endpoint AJAX es el mismo archivo: POST + `?action=importar`, responde NDJSON línea a línea con `flush()` (eventos: `parsing`/`parsed`/`dedup`/`inserting`/`resumen`/`done`).
-- Dedup por `md5(dpto|nombre|numero|fecha_hora)` en `hash_registro`; `INSERT IGNORE` en lotes de 500; recálculo parcial solo de pares `(rut_base, fecha)` afectados.
-
-## Exportadores XLSX
-- `inc/xlsx_generator.php` es generador propio sin librerías (clase `ExcelExporter`; cascada ZipArchive → PurePhpZip → CSV). Estilos vía const `STYLE_*`.
-- `exportar_inasistencias.php` y `exportar_horas_mes.php` se invocan por GET (`mes`, `dpto`, `q`), llaman `ob_start()` al inicio y escriben la descarga con `header()` + echo directo. No llamarlos tras output emitido.
-
-## Sesión y roles
-- `$_SESSION['usuario_id'|'usuario_nombre'|'usuario_rol']` se setean en `login.php`.
-- El control por rol (`admin`/`operador`) está documentado en el README pero NO está implementado en el código: no hay checks de `usuario_rol` fuera de `login.php`.
-- Las páginas embeben `navbar.php` para la navegación compartida (marca la pestaña activa vía `$current_page`); incluir también el favicon/JS que trae.
+- RUT chileno: `normalizar_rut()` quita puntos/guiones/espacios; la importación guarda `rut_base` = número sin el dígito verificador.
