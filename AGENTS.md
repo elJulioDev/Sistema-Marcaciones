@@ -28,7 +28,7 @@ config/
   routes.php
 database/
   schema.sql       # esquema público (ya existe)
-  schema_demo.sql  # datos demo públicos (ya existe, julio 2026, admin/admin123)
+  schema_demo.sql  # datos demo públicos (ya existe, julio 2026; admin 11111111-1/admin123, operador 22222222-2/operador123)
 storage/logs/
 .env / .env.example
 ```
@@ -36,7 +36,7 @@ storage/logs/
 ### Fases
 1. **Fundación (hecha):** `.env.example`, `database/schema_demo.sql`, `.gitignore` actualizado, este plan.
 2. **Core (hecha):** `Env` (cargador .env), `Database` (PDO singleton), autoloader PSR-4 sin Composer, `public/index.php` + `Router`, helpers centralizados en `app/Support`, `View` + layout base, `base_url()` en todas las URLs/assets, `.htaccess` raíz (coexiste con el legado). Prueba en `http://localhost/Sistema-Marcaciones/`.
-3. **Auth y roles:** `AuthController` (login/logout), middleware de sesión + control real de roles `admin`/`operador` (hoy solo se documenta, no se aplica), navbar en layout.
+3. **Auth y roles (hecha):** `AuthController` (login/logout), `Core/Auth` (sesión + roles), `Models/Usuario`, middleware en `Router` (3er parámetro de `get`/`post`: `null` pública, `'login'` cualquier sesión, `'admin'` o `['admin','operador']` roles), navbar en layout con usuario + salir, vistas `auth/login` y `errors/403`. El legado (`login.php`) sigue sirviéndose aparte.
 4. **Migración de módulos** a Controllers/Models/Views: panel, consulta, calendario, observaciones, editar resumen, eliminar mes.
 5. **Importación:** mover lógica NDJSON a `Services/ImportadorMarcaciones` (parseo, dedup md5, `INSERT IGNORE` lotes 500, `recalcular_parcial`), endpoint JSON.
 6. **Exportadores:** mover `inc/xlsx_generator.php` a `Services/ExcelExporter`, controladores de exportación.
@@ -51,7 +51,7 @@ storage/logs/
 ### Reglas nuevas desde aquí
 - PHP 8.x (XAMPP 8.2), `declare(strict_types=1)`; usar `??`, arrow functions, types.
 - Todo el código nuevo lee configuración de `.env` vía `Core/Env` — **nada hardcodeado** (host, credenciales, nombre de BD, `BASE_URL`, zona horaria).
-- Helpers centralizados (RUT, hora, fecha, `h()`) en `app/Services` — nunca duplicarlos por archivo.
+- Helpers centralizados (RUT, hora, fecha, `h()`) en `app/Support` — nunca duplicarlos por archivo.
 - URL base siempre vía `BASE_URL` (assets, links, redirects).
 
 ---

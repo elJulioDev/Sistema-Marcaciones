@@ -49,6 +49,41 @@ body {
 
 .app-brand:hover { color: var(--color-primary-dark); }
 
+/* ── Navegación ─────────────────────────── */
+.app-nav {
+    display: flex;
+    gap: .25rem;
+    margin-left: auto;
+}
+
+.app-nav a {
+    padding: .45rem .75rem;
+    border-radius: 6px;
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: .9rem;
+    font-weight: 500;
+}
+
+.app-nav a:hover { color: var(--color-text); background: var(--color-bg); }
+
+.app-nav a.active {
+    color: var(--color-primary);
+    background: rgba(37, 99, 235, .1);
+}
+
+.app-user {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-left: 1rem;
+    font-size: .9rem;
+    white-space: nowrap;
+}
+
+.app-user-name { font-weight: 600; }
+.app-user-rol { color: var(--color-muted); font-size: .8rem; }
+
 /* ── Main / footer ──────────────────────── */
 .app-main {
     padding-top: 2rem;
@@ -94,3 +129,109 @@ code {
 }
 
 .muted { color: var(--color-muted); }
+
+/* ── Botones ────────────────────────────── */
+.btn {
+    display: inline-block;
+    padding: .55rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: .9rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.btn-primary:hover { background: var(--color-primary-dark); }
+
+.btn-ghost {
+    background: transparent;
+    border-color: var(--color-border);
+    color: var(--color-muted);
+}
+
+.btn-ghost:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-block { display: block; width: 100%; }
+
+/* ── Formularios ────────────────────────── */
+.form-group { margin-bottom: 1rem; }
+
+.form-group label {
+    display: block;
+    margin-bottom: .35rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--color-muted);
+}
+
+.form-control {
+    width: 100%;
+    padding: .6rem .8rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: .95rem;
+    font-family: inherit;
+    background: var(--color-surface);
+}
+
+.form-control:focus {
+    outline: 2px solid rgba(37, 99, 235, .25);
+    border-color: var(--color-primary);
+}
+
+/* ── Alertas ────────────────────────────── */
+.alert {
+    padding: .75rem 1rem;
+    border-radius: 8px;
+    font-size: .9rem;
+    margin-bottom: 1rem;
+}
+
+.alert-error {
+    background: rgba(220, 38, 38, .08);
+    border: 1px solid rgba(220, 38, 38, .3);
+    color: #b91c1c;
+}
+
+/* ── Login / auth ───────────────────────── */
+.auth-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.auth-wrap { width: 100%; max-width: 400px; }
+
+.auth-card { padding: 2rem; }
+
+.auth-brand { text-align: center; margin-bottom: 1.5rem; }
+
+.auth-brand h1 {
+    margin: .6rem 0 .25rem;
+    font-size: 1.35rem;
+}
+
+.auth-brand p { margin: 0; font-size: .9rem; }
+
+.auth-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, .1);
+    color: var(--color-primary);
+}

@@ -7,11 +7,17 @@ namespace App\Core;
 /**
  * Router simple: rutas {parámetro}, métodos GET/POST y despacho al
  * controlador (o closure). La ruta se calcula restando BASE_URL del URI.
+ *
+ * Cada ruta puede exigir autenticación y/o roles específicos:
+ *   - null          → pública
+ *   - 'login'       → cualquier usuario con sesión iniciada
+ *   - 'admin'       → solo rol admin
+ *   - ['admin',...] → cualquiera de los roles listados
  */
 final class Router
 {
     /**
-     * @var array<string, array<string, callable|array{class-string, string}>>
+     * @var array<string, array<string, array{handler: callable|array{class-string, string}, auth: string|array|null}>>
      */
     private array $routes = [];
     private string $baseUrl = '';
@@ -22,19 +28,26 @@ final class Router
         $this->baseUrl   = '/' . trim($baseUrl, '/');
     }
 
-    public function get(string $path, callable|array $handler): void
+    public function get(string $path, callable|array $handler, string|array|null $auth = null): void
     {
-        $this->add('GET', $path, $handler);
+        $this->add('GET', $path, $handler, $auth);
     }
 
-    public function post(string $path, callable|array $handler): void
+    public function post(string $path, callable|array $handler, string|array|null $auth = null): void
     {
-        $this->add('POST', $path, $handler);
+        $this->add('POST', $path, $handler, $auth);
     }
 
-    public function add(string $method, string $path, callable|array $handler): void
-    {
-        $this->routes[strtoupper($method)][$path] = $handler;
+    public function add(
+        string $method,
+        string $path,
+        callable|array $handler,
+        string|array|null $auth = null
+    ): void {
+        $this->routes[strtoupper($method)][$path] = [
+            'handler' => $handler,
+            'auth'    => $auth,
+        ];
     }
 
     public function dispatch(): void
@@ -43,23 +56,56 @@ final class Router
         $path   = $this->stripBaseUrl($uri);
         $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
-        [$handler, $params] = $this->match($method, $path);
+        [$entry, $params] = $this->match($method, $path);
 
-        if ($handler === null) {
+        if ($entry === null) {
             http_response_code(404);
             header('Content-Type: text/plain; charset=utf-8');
             echo '404 — No encontrado';
             return;
         }
 
+        if (!$this->authorize($entry['auth'])) {
+            return;
+        }
+
+        $handler = $entry['handler'];
+
         if (is_array($handler)) {
             [$class, $action] = $handler;
-            $controller = new $class();
-            echo $controller->{$action}(...array_values($params));
+            echo (new $class())->{$action}(...array_values($params));
             return;
         }
 
         echo $handler(...array_values($params));
+    }
+
+    private function authorize(string|array|null $auth): bool
+    {
+        if ($auth === null) {
+            return true;
+        }
+
+        if (!Auth::check()) {
+            redirect('/login');
+
+            return false;
+        }
+
+        $roles = is_array($auth) ? $auth : [$auth];
+
+        if (in_array('login', $roles, true)) {
+            return true;
+        }
+
+        if (!in_array(Auth::rol(), $roles, true)) {
+            http_response_code(403);
+            echo View::render('errors/403', ['title' => 'Acceso denegado'], null);
+
+            return false;
+        }
+
+        return true;
     }
 
     private function stripBaseUrl(string $uri): string
@@ -73,11 +119,11 @@ final class Router
     }
 
     /**
-     * @return array{0: callable|array{class-string, string}|null, 1: array<string, string>}
+     * @return array{0: array{handler: callable|array{class-string, string}, auth: string|array|null}|null, 1: array<string, string>}
      */
     private function match(string $method, string $path): array
     {
-        foreach ($this->routes[$method] ?? [] as $route => $handler) {
+        foreach ($this->routes[$method] ?? [] as $route => $entry) {
             $pattern = '#^' . preg_replace('/\{[a-zA-Z_]+\}/', '([^/]+)', $route) . '$#';
 
             if (!preg_match($pattern, $path, $matches)) {
@@ -92,7 +138,7 @@ final class Router
                 $params[$name] = $matches[$i] ?? null;
             }
 
-            return [$handler, $params];
+            return [$entry, $params];
         }
 
         return [null, []];

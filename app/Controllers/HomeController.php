@@ -8,9 +8,9 @@ use App\Core\Controller;
 use App\Core\Database;
 
 /**
- * Página de inicio provisional (Fase 2). Se reemplaza por el Panel real
- * en la Fase 3. Su único propósito es demostrar que la infraestructura
- * (env, DB, router, layout, assets) funciona.
+ * Página de inicio provisional. Se reemplaza por el Panel real en la
+ * Fase 4. Hoy demuestra que la infraestructura (env, DB, router, layout,
+ * auth, assets) funciona.
  */
 final class HomeController extends Controller
 {
@@ -22,6 +22,7 @@ final class HomeController extends Controller
 
         return $this->view('home/index', [
             'title'          => 'Panel de control',
+            'activeNav'      => 'inicio',
             'totalResumenes' => $totalResumenes,
         ]);
     }
