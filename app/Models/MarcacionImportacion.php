@@ -11,6 +11,35 @@ use App\Core\Database;
  */
 final class MarcacionImportacion
 {
+    /** Crea el registro de auditoría de la importación (totales en 0). */
+    public static function crear(string $nombreArchivo, string $periodo, string $observacion, ?int $creadoPor): int
+    {
+        $stmt = Database::pdo()->prepare(
+            "INSERT INTO marcaciones_importaciones
+                (nombre_archivo,periodo,observacion,total_lineas,
+                 total_insertadas,total_duplicadas,total_invalidas,creado_por)
+             VALUES(?,?,?,0,0,0,0,?)"
+        );
+        $stmt->execute([
+            $nombreArchivo,
+            ($periodo ?: null),
+            ($observacion ?: null),
+            $creadoPor,
+        ]);
+
+        return (int) Database::pdo()->lastInsertId();
+    }
+
+    public static function actualizarTotales(int $id, int $totalLineas, int $totalInsertadas, int $totalDuplicadas, int $totalInvalidas): void
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE marcaciones_importaciones
+                SET total_lineas=?, total_insertadas=?, total_duplicadas=?, total_invalidas=?
+              WHERE id=?'
+        );
+        $stmt->execute([$totalLineas, $totalInsertadas, $totalDuplicadas, $totalInvalidas, $id]);
+    }
+
     public static function listar(): array
     {
         return Database::pdo()

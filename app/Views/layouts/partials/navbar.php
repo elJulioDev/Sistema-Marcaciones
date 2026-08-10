@@ -12,7 +12,7 @@ use App\Core\Auth;
             <nav class="app-nav">
                 <a href="<?= base_url('/') ?>" class="<?= ($activeNav ?? '') === 'inicio' ? 'active' : '' ?>">Inicio</a>
                 <a href="<?= base_url('/calendario') ?>" class="<?= ($activeNav ?? '') === 'calendario' ? 'active' : '' ?>">Calendario</a>
-                <a href="<?= base_url('/importar_marcaciones.php') ?>" class="<?= ($activeNav ?? '') === 'importar' ? 'active' : '' ?>">Importar</a>
+                <a href="<?= base_url('/importar') ?>" class="<?= ($activeNav ?? '') === 'importar' ? 'active' : '' ?>">Importar</a>
                 <a href="<?= base_url('/observaciones') ?>" class="<?= ($activeNav ?? '') === 'observaciones' ? 'active' : '' ?>">Observaciones</a>
                 <a href="<?= base_url('/consulta') ?>" class="<?= ($activeNav ?? '') === 'consulta' ? 'active' : '' ?>">Consulta</a>
                 <?php if (Auth::isAdmin()): ?>
