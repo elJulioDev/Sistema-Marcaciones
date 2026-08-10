@@ -13,7 +13,7 @@ final class AuthController extends Controller
     public function login(): string
     {
         if (Auth::check()) {
-            $this->redirect('/');
+            $this->redirect('/dashboard');
         }
 
         $error = '';
@@ -26,7 +26,7 @@ final class AuthController extends Controller
 
             if ($usuario !== null && $usuario->verifyPassword($password)) {
                 Auth::login($usuario->id, $usuario->nombre, $usuario->rol);
-                $this->redirect('/');
+                $this->redirect('/dashboard');
             }
 
             $error = 'Usuario o contraseña incorrectos.';

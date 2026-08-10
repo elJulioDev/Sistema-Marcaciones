@@ -34,7 +34,7 @@ $rolLabel = $rolLabels[$rol] ?? $rol;
 
 $nav = [
     'General' => [
-        ['ruta' => '/',            'nav' => 'inicio',        'icono' => 'bi-house-door',   'label' => 'Inicio'],
+        ['ruta' => '/dashboard', 'nav' => 'inicio',        'icono' => 'bi-house-door',   'label' => 'Inicio'],
         ['ruta' => '/calendario',  'nav' => 'calendario',    'icono' => 'bi-calendar3',    'label' => 'Calendario'],
     ],
     'Asistencia' => [
@@ -52,7 +52,7 @@ $navAdmin = [
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="sidebar-header-row">
-            <a class="sidebar-brand" href="<?= base_url('/') ?>" title="Sistema de Marcaciones">
+            <a class="sidebar-brand" href="<?= base_url('/dashboard') ?>" title="Sistema de Marcaciones">
                 <span class="sidebar-brand-icon"><i class="bi bi-clock-history"></i></span>
                 <span class="sidebar-brand-name">Marcaciones</span>
             </a>
@@ -103,13 +103,13 @@ $navAdmin = [
             <i class="bi bi-layout-sidebar d-none d-lg-inline-flex"></i>
         </button>
 
-        <a href="<?= base_url('/') ?>" class="topbar-brand" title="Sistema de Marcaciones">
+        <a href="<?= base_url('/dashboard') ?>" class="topbar-brand" title="Sistema de Marcaciones">
             <span class="topbar-brand-icon"><i class="bi bi-clock-history"></i></span>
             <span class="d-none d-sm-inline">Marcaciones</span>
         </a>
 
         <nav class="topbar-breadcrumb" aria-label="Miga de pan">
-            <a href="<?= base_url('/') ?>" class="crumb-link">Inicio</a>
+            <a href="<?= base_url('/dashboard') ?>" class="crumb-link">Inicio</a>
             <span class="crumb-sep bi bi-chevron-right"></span>
             <span class="crumb-current" title="<?= h($pageTitle) ?>"><?= h($pageTitle) ?></span>
         </nav>

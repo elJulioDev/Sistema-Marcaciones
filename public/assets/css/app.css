@@ -865,6 +865,94 @@ code {
 .panel-card:hover .panel-arrow { color: var(--color-primary); transform: translateX(3px); }
 
 /* ════════════════════════════════════════════════════════════════════
+   5.1 DASHBOARD ADMINISTRATIVO
+   ════════════════════════════════════════════════════════════════════ */
+
+.dash-filters { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.dash-filters .month-nav { display: flex; align-items: center; gap: .3rem; }
+.dash-filters .month-label { font-weight: 700; font-size: .95rem; min-width: 150px; text-align: center; color: var(--color-text); }
+
+/* Tarjetas de KPIs */
+.kpis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
+.kpi-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.15rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--color-primary-light); }
+.kpi-icon { width: 44px; height: 44px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+.kpi-icon.ok      { background: var(--color-success-bg); color: var(--color-success); }
+.kpi-icon.primary { background: var(--color-primary-bg); color: var(--color-primary); }
+.kpi-icon.warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.kpi-icon.danger  { background: var(--color-danger-bg); color: var(--color-danger); }
+.kpi-icon.info    { background: var(--color-info-bg); color: var(--color-info); }
+.kpi-value { font-size: 1.3rem; font-weight: 700; font-family: var(--font-mono); line-height: 1.1; }
+.kpi-label { font-size: .75rem; color: var(--color-text-muted); font-weight: 600; }
+
+/* Rejilla de paneles */
+.dash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+@media (max-width: 1199.98px) { .dash-grid { grid-template-columns: 1fr; } }
+
+.dash-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+.dash-card-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1.15rem; border-bottom: 1px solid var(--color-border); background: var(--color-card-header-bg); }
+.dash-card-title { font-size: .76rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--color-text-muted); display: flex; align-items: center; gap: .5rem; }
+.dash-card-title i { color: var(--color-primary); }
+.dash-card-link { font-size: .76rem; font-weight: 600; color: var(--color-primary); text-decoration: none; white-space: nowrap; }
+.dash-card-link:hover { text-decoration: underline; }
+.dash-card-body { padding: 1.15rem; }
+
+/* Donut de estados */
+.donut-wrap { display: flex; align-items: center; gap: 1.6rem; flex-wrap: wrap; }
+.donut { width: 152px; height: 152px; border-radius: 50%; position: relative; flex-shrink: 0; }
+.donut::after { content: ''; position: absolute; inset: 34px; background: var(--color-surface); border-radius: 50%; z-index: 0; }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1; }
+.donut-center strong { font-size: 1.45rem; font-family: var(--font-mono); line-height: 1.1; }
+.donut-center span { font-size: .68rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.legend { display: flex; flex-direction: column; gap: .45rem; flex: 1; min-width: 150px; }
+.legend-item { display: flex; align-items: center; gap: .5rem; font-size: .85rem; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.legend-count { margin-left: auto; font-weight: 700; font-family: var(--font-mono); }
+.legend-pct { color: var(--color-text-muted); font-size: .78rem; width: 46px; text-align: right; }
+
+/* Barras de marcas por día */
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 150px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; min-width: 0; }
+.bar { width: 100%; max-width: 24px; background: linear-gradient(180deg, var(--color-primary), var(--color-accent)); border-radius: 3px 3px 0 0; min-height: 2px; transition: height .2s ease, filter .15s ease; }
+.bar-col:hover .bar { filter: brightness(1.12); }
+.bar-label { font-size: .58rem; color: var(--color-text-muted); white-space: nowrap; }
+.bar-count { font-size: .6rem; font-weight: 700; color: var(--color-text-muted); }
+
+/* Barras por departamento */
+.dpto-row { margin-bottom: .85rem; }
+.dpto-row:last-child { margin-bottom: 0; }
+.dpto-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; font-size: .85rem; margin-bottom: .3rem; }
+.dpto-head strong { font-weight: 600; }
+.dpto-head small { color: var(--color-text-muted); white-space: nowrap; }
+.dpto-track { height: 8px; background: var(--color-surface-3); border-radius: 99px; overflow: hidden; }
+.dpto-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--color-primary), var(--color-accent)); }
+
+/* Tablas compactas dentro de paneles */
+.mini-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.mini-table th { font-size: .66rem; padding: .45rem .6rem; }
+.mini-table td { padding: .5rem .6rem; }
+.mini-table th:last-child, .mini-table td:last-child { text-align: right; }
+
+/* Lista de presentes hoy */
+.mini-list { display: flex; flex-direction: column; }
+.mini-list-item { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .5rem .25rem; border-bottom: 1px dashed var(--color-border); font-size: .85rem; }
+.mini-list-item:last-child { border-bottom: none; }
+.mini-list-item .who { min-width: 0; }
+.mini-list-item .who strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-list-item .who small { color: var(--color-text-muted); }
+.mini-list-item .when { font-family: var(--font-mono); font-size: .8rem; white-space: nowrap; }
+
+/* ════════════════════════════════════════════════════════════════════
    6. TARJETAS (canon común)
    ════════════════════════════════════════════════════════════════════ */
 

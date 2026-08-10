@@ -36,7 +36,7 @@
             <h1>403 — Acceso denegado</h1>
             <p class="muted">Tu rol de usuario no tiene permisos para acceder a esta sección.</p>
         </div>
-        <a class="btn btn-primary btn-block" href="<?= base_url('/') ?>">
+        <a class="btn btn-primary btn-block" href="<?= base_url('/dashboard') ?>">
             <i class="bi bi-house-door"></i> Volver al inicio
         </a>
     </div>
