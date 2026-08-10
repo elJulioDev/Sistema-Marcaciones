@@ -1,19 +1,10 @@
-/* ── Reset & base ─────────────────────────────────────────── */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#f1f5f9;--s1:#ffffff;--s2:#f8fafc;--s3:#e2e8f0;
-  --b0:#e2e8f0;--b1:#cbd5e1;--b2:#94a3b8;
-  --t1:#0f172a;--t2:#475569;--t3:#64748b;
-  --blue:#2563eb;--blg:rgba(37,99,235,.12);--bls:rgba(37,99,235,.06);
-  --grn:#059669;--gng:rgba(5,150,105,.12);
-  --amb:#d97706;--amg:rgba(217,119,6,.12);
-  --red:#dc2626;--rdg:rgba(220,38,38,.12);
-  --r:14px;--r2:8px;
-  --font:'Figtree',system-ui,sans-serif;
-  --mono:'JetBrains Mono','Courier New',monospace;
+/* ── Importar ────────────────────────────────────────────────
+   Los tokens, reset y estilos base provienen de app.css.
+   Este archivo solo define el layout y componentes propios. */
+
+body.imp-body{
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;line-height:1.5;
 }
-body{font-family:var(--font);background:var(--bg);color:var(--t1);
-     height:100vh;display:flex;flex-direction:column;overflow:hidden;line-height:1.5;}
 
 .main-scroll{flex:1;overflow-y:auto;width:100%;}
 .wrap {

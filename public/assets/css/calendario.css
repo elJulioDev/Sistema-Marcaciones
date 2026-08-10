@@ -1,24 +1,10 @@
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#f1f5f9;--s1:#ffffff;--s2:#f8fafc;--s3:#e2e8f0;--hov:#cbd5e1;
-  --b0:#e2e8f0;--b1:#cbd5e1;--b2:#94a3b8;
-  --t1:#0f172a;--t2:#475569;--t3:#64748b;
-  --blue:#2563eb;--blg:rgba(37,99,235,.15);--bls:rgba(37,99,235,.08);
-  --grn:#059669;--gng:rgba(5,150,105,.12);
-  --amb:#d97706;--amg:rgba(217,119,6,.12);
-  --red:#dc2626;--rdg:rgba(220,38,38,.12);
-  --sky:#0284c7;--skg:rgba(2,132,199,.12);
-  --r:12px;--r2:8px;
-  --font:'Figtree',system-ui,sans-serif;
-  --mono:'JetBrains Mono','Courier New',monospace;
+/* ── Calendario ──────────────────────────────────────────────
+   Los tokens, reset y estilos base provienen de app.css.
+   Este archivo solo define el layout propio de la página. */
+
+body.cal-body{
+  height:100vh;overflow:hidden;display:flex;flex-direction:column;line-height:1.45;
 }
-html{font-size:14px;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--font);background:var(--bg);color:var(--t1);height:100vh;overflow:hidden;line-height:1.45;display:flex;flex-direction:column;}
-a{color:inherit;text-decoration:none}
-button{cursor:pointer;font-family:var(--font)}
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
 
 /* ── App ─────────────────────────────────────────────────── */
 .app{width:100%;max-width:1920px;margin:0 auto;padding:20px 2%;flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -233,7 +219,7 @@ tbody tr:hover > td { background: var(--s2); }
 .modal-btn-cancel:hover{background:var(--s3);}
 
 @media(max-width:900px){
-  body{height:auto;overflow:visible;display:block;}
+  body.cal-body{height:auto;overflow:visible;display:block;}
   .app{height:auto;display:block;padding:16px 4% 50px;flex:none;}
   .grid{grid-template-columns:1fr;display:block;}
   .cc{height:auto;margin-bottom:20px;overflow-y:visible;}
