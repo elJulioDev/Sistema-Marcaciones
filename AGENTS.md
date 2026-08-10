@@ -18,10 +18,11 @@ public/            # Document root (front controller + .htaccess + assets)
   .htaccess        # reescritura al front controller
   assets/          # css/js/img (migra desde static/)
 app/
-  Core/            # Env, Database, Router, Auth/Sesión, Controller base, View
+  Core/            # Env, Database, Router, Controller base, View
   Controllers/     # Auth, Panel, Calendario, Importacion, Observaciones, Marcacion, Consulta, Mes, Exportar*
   Models/          # Marcacion, MarcacionResumen, MarcacionImportacion, Usuario
-  Services/        # ImportadorMarcaciones (NDJSON), ExcelExporter, Helpers RUT/fecha/hora
+  Services/        # ImportadorMarcaciones (NDJSON), ExcelExporter
+  Support/         # helpers globales: h(), base_url(), RUT, fecha, hora
   Views/           # layouts/ + vistas por módulo
 config/
   routes.php
@@ -34,13 +35,18 @@ storage/logs/
 
 ### Fases
 1. **Fundación (hecha):** `.env.example`, `database/schema_demo.sql`, `.gitignore` actualizado, este plan.
-2. **Core:** cargador de `.env`, `Database` (PDO singleton desde `.env`), autoloader, `public/index.php` + `Router`, helper `BASE_URL` (todas las URLs/assets lo usan), layouts.
+2. **Core (hecha):** `Env` (cargador .env), `Database` (PDO singleton), autoloader PSR-4 sin Composer, `public/index.php` + `Router`, helpers centralizados en `app/Support`, `View` + layout base, `base_url()` en todas las URLs/assets, `.htaccess` raíz (coexiste con el legado). Prueba en `http://localhost/Sistema-Marcaciones/`.
 3. **Auth y roles:** `AuthController` (login/logout), middleware de sesión + control real de roles `admin`/`operador` (hoy solo se documenta, no se aplica), navbar en layout.
 4. **Migración de módulos** a Controllers/Models/Views: panel, consulta, calendario, observaciones, editar resumen, eliminar mes.
 5. **Importación:** mover lógica NDJSON a `Services/ImportadorMarcaciones` (parseo, dedup md5, `INSERT IGNORE` lotes 500, `recalcular_parcial`), endpoint JSON.
 6. **Exportadores:** mover `inc/xlsx_generator.php` a `Services/ExcelExporter`, controladores de exportación.
 7. **Des-rotulación:** quitar textos/logo/footer Coltauco, `README.md` nuevo.
 8. **Limpieza/QA:** borrar archivos planos de la raíz (`login.php`, `panel.php`, `inc/db.php`, `auth.php`, `hash.php`, `navbar.php`, etc.), `php -l` global, probar flujo completo.
+
+### Gotchas del front controller (Apache/XAMPP)
+- `.htaccess` raíz reescribe: `^assets/(.*)$ → public/assets/$1` (assets directos), archivos `.php`/`static/` reales del legado se sirven directos, el resto → `public/index.php`. No usar `%{DOCUMENT_ROOT}` para ubicar `public/` (apunta a htdocs, no al proyecto).
+- En reglas por-directorio, el backref del patrón de la regla en un `RewriteCond` es `$1` (NO `%1`). Evitar `public/$1` como destino (quirk 404 en este Apache); usar `public/assets/$1`.
+- `Router` resta `BASE_URL` del `REQUEST_URI` para obtener la ruta; toda URL/asset se genera con `base_url()`.
 
 ### Reglas nuevas desde aquí
 - PHP 8.x (XAMPP 8.2), `declare(strict_types=1)`; usar `??`, arrow functions, types.

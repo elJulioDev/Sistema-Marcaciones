@@ -1,0 +1,20 @@
+# ── Front controller: reenvía todo a public/ ─────────────────────
+# El legado (archivos .php en la raíz y static/) se sigue sirviendo
+# directo hasta completar la migración (Fase 8).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Raíz del proyecto → front controller
+    RewriteRule ^$ public/index.php [L]
+
+    # Assets nuevos (public/assets/*) → directo, sin pasar por PHP
+    RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+
+    # Archivos/dirs reales en la raíz (legado: *.php y static/) → directo
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Todo lo demás → front controller
+    RewriteRule ^(.*)$ public/index.php [L]
+</IfModule>

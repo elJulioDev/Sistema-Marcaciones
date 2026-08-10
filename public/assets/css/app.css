@@ -1,0 +1,96 @@
+:root {
+    --color-primary: #2563eb;
+    --color-primary-dark: #1d4ed8;
+    --color-bg: #f1f5f9;
+    --color-surface: #ffffff;
+    --color-text: #0f172a;
+    --color-muted: #64748b;
+    --color-border: #e2e8f0;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(15, 23, 42, .08);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Figtree', Arial, Helvetica, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+.container {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* ── Header ─────────────────────────────── */
+.app-header {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.app-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+}
+
+.app-brand {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.app-brand:hover { color: var(--color-primary-dark); }
+
+/* ── Main / footer ──────────────────────── */
+.app-main {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    min-height: calc(100vh - 60px - 50px);
+}
+
+.app-footer {
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    color: var(--color-muted);
+    font-size: .85rem;
+    line-height: 50px;
+}
+
+/* ── Tarjetas ───────────────────────────── */
+.card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+}
+
+.card h1 {
+    margin-top: 0;
+    font-size: 1.4rem;
+}
+
+.card-list {
+    margin: 1rem 0 0;
+    padding-left: 1.2rem;
+}
+
+.card-list li { margin-bottom: .5rem; }
+
+code {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: .1em .4em;
+    font-size: .9em;
+}
+
+.muted { color: var(--color-muted); }
