@@ -40,7 +40,7 @@ storage/logs/
 4. **Migración de módulos (hecha):** controllers/models/vistas para panel, consulta, calendario, observaciones, editar resumen, eliminar mes. Rutas `/marcacion/editar`, `/eliminar-mes` (admin).
 5. **Importación (hecha):** lógica NDJSON en `Services/ImportadorMarcaciones` (parseo, dedup md5, `INSERT IGNORE` lotes 500, `recalcular_parcial` respeta `editado_manual=1`), endpoint JSON `POST /importar/importar`.
 6. **Exportadores (hecha):** `inc/xlsx_generator.php` movido a `Services/ExcelExporter` (mismo generador sin librerías: ZipArchive → PurePhpZip → CsvWriter); `Services/ExportadorInasistencias` y `Services/ExportadorHorasMes` (lógica portada de los archivos raíz) + `Controllers/ExportarController`. Rutas `GET /exportar/inasistencias?rango=...&mes=...&fecha=...` y `GET /exportar/horas-mes?mes=...&dpto=...&q=...` (auth `login`). `calendario.js` apunta a las rutas nuevas.
-7. **Des-rotulación:** la app nueva (`app/` + `public/`) ya no tiene textos Coltauco (verificado). Pendiente: `README.md` nuevo genérico y `database/schema.sql` (quitar comentario "Municipalidad de Coltauco" de la cabecera). La marca en `login.php`/`navbar.php` se elimina con los archivos planos en la Fase 8, no se re-rotula.
+7. **Des-rotulación (hecha):** la app nueva (`app/` + `public/`) no tiene textos Coltauco (verificado). `README.md` reescrito genérico y `database/schema.sql` sin marca en la cabecera (comentarios actualizados a la app nueva). La marca que queda en `login.php`/`navbar.php` se elimina con los archivos planos en la Fase 8, no se re-rotula.
 8. **Limpieza/QA:** borrar archivos planos de la raíz (`login.php`, `panel.php`, `inc/db.php`, `auth.php`, `hash.php`, `navbar.php`, etc.), `php -l` global, probar flujo completo.
 
 ### Gotchas del front controller (Apache/XAMPP)
@@ -69,11 +69,9 @@ Conviven dos capas: el legado plano (raíz) y la app migrada (`public/` + `app/`
 - `inc/` (gitignored): `db.php` (define `db()`), `xlsx_generator.php` (ya migrado a `Services/ExcelExporter`).
 - `static/` (css/img legados).
 
-### Marca Coltauco restante (alcance de Fase 7)
-- `README.md` (línea 4): texto municipal → reemplazar por README genérico.
-- `database/schema.sql`: comentario "Municipalidad de Coltauco" en la cabecera.
-- `login.php` (líneas 59 y 127) y `navbar.php` (línea 334, "RRHH Coltauco"): texto en páginas planas que se borrarán en Fase 8 — no re-rotular, solo borrar.
-- La app nueva (`app/` + `public/`) NO tiene texto Coltauco (verificado).
+### Marca Coltauco restante
+- `login.php` (líneas 59 y 127), `navbar.php` (línea 334, "RRHH Coltauco") y `consulta_marcaciones.php` (logo alt "Municipalidad"): texto en páginas planas que se borrarán en Fase 8 — no re-rotular, solo borrar.
+- `README.md`, `database/schema.sql` y la app nueva (`app/` + `public/`) ya NO tienen marca (fase 7 hecha).
 
 ### Convenciones del legado (solo aplican a los archivos planos que queden)
 - Compatibilidad PHP 5.6 es restricción dura (hubo un commit de fix explícito). `array(...)`, sin `??`, arrow functions ni tipos escalares declarados. No duplicar helpers en código nuevo.

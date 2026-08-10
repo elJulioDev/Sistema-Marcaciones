@@ -1,145 +1,114 @@
-# Sistema de Marcaciones — Control de Asistencia Municipal
+# Sistema de Marcaciones — Control de Asistencia
 
 ## Descripción General
-El Sistema de Marcaciones es una plataforma web destinada a la gestión integral de la asistencia laboral, construida específicamente para la **Municipalidad de Coltauco**. Permite importar de manera masiva los archivos planos generados por los relojes de control horario, calcular automáticamente entradas, salidas, totales de horas e incidencias, y entregar reportes operativos para Recursos Humanos.
 
-Está pensado para entornos corporativos sobre **PHP 5.6+ / MariaDB / XAMPP**, sin dependencias externas de Composer ni librerías pesadas: el generador de Excel, el escritor ZIP y los flujos en streaming están escritos en PHP puro.
+Plataforma web para la gestión integral de la asistencia laboral. Permite importar de forma masiva los archivos planos generados por los relojes de control horario, calcular automáticamente entradas, salidas, totales de horas e incidencias, y entregar reportes operativos para Recursos Humanos.
 
----
-
-## Arquitectura y Seguridad
-
-El proyecto sigue un esquema modular de "una página por responsabilidad". Cada módulo es autónomo (importación, calendario, observaciones, consulta, edición), pero todos comparten una capa común de autenticación, navegación y conexión a base de datos.
-
-A nivel técnico:
-
-* **Autenticación y Sesiones:** Cada ruta protegida valida sesión vía `auth.php`. Las contraseñas se almacenan con `password_hash()` y se verifican con `password_verify()`.
-* **Acceso por Rol:** La tabla `usuarios_sistema` define el campo `rol`, lo que permite restringir vistas a perfiles administrativos o de RR.HH.
-* **Conexión PDO:** Toda interacción con MySQL utiliza consultas preparadas con marcadores nombrados (`:param`) o posicionales (`?`), eliminando el riesgo de inyección SQL.
-* **Sanitización de salidas:** Función helper `h()` con `htmlspecialchars()` ENT_QUOTES UTF-8 aplicada en todas las vistas.
-* **Streaming NDJSON:** La importación masiva emite eventos línea a línea (`application/x-ndjson`) con `flush()` explícito, permitiendo barras de progreso reales en el cliente sin saturar el servidor.
-* **Deduplicación por hash:** Cada marcación bruta genera un MD5 sobre `dpto|nombre|numero|fecha_hora`. Esto evita registros duplicados al reimportar archivos solapados, incluso si se cargan varias veces.
-* **Micropausas controladas:** Durante la inserción y el recálculo de resúmenes se introducen `usleep()` cada 200ms para no saturar la base de datos compartida.
+Está pensado para entornos corporativos sobre **PHP 8.x / MariaDB / XAMPP**, sin dependencias externas: no usa Composer ni librerías pesadas. El generador de Excel, el escritor ZIP y los flujos en streaming están escritos en PHP puro.
 
 ---
 
-## Roles y Perfiles
+## Características
 
-### 1. Administrador / RR.HH. (`admin`)
-Acceso global a todos los módulos:
-* Importar archivos del reloj.
-* Visualizar y exportar reportes.
-* Editar manualmente cualquier marcación.
-* Eliminar meses completos.
-* Consultar por RUT a cualquier funcionario.
-
-### 2. Operador (`operador`)
-Acceso restringido a:
-* Calendario visual.
-* Observaciones (corrección de incidencias).
-* Consulta por RUT.
+* **Importación masiva** con streaming NDJSON y barra de progreso en tiempo real.
+* **Deduplicación por hash** (MD5 de `dpto|nombre|numero|fecha_hora`) para reimportaciones seguras.
+* **Recálculo parcial** de resúmenes que respeta las ediciones manuales (`editado_manual = 1`).
+* **Calendario visual** en modos día, semana y mes, con navegación AJAX.
+* **Observaciones**: bandeja de incidencias (`OBSERVADO`, `INCOMPLETO`, `ERROR`) con paginación y edición directa.
+* **Consulta por RUT** con validación módulo 11 e impresión / guardado PDF.
+* **Exportadores XLSX** propios (sin librerías): inasistencias semanal/mensual y horas trabajadas del mes.
+* **Edición manual** de marcaciones, incluyendo crear registro para un ausente.
+* **Roles**: `admin` y `operador` con control real en las rutas.
 
 ---
 
-## Manual de Usuario por Módulos
+## Arquitectura
 
-### Login (`login.php`)
-Pantalla de acceso con tema institucional (azul navy + degradados). Valida RUT + contraseña contra `usuarios_sistema`, regenera la sesión y redirige al panel principal. La cookie de sesión se invalida explícitamente al cerrar sesión vía `logout.php`.
+Aplicación PHP por capas con un único front controller:
 
-### Panel Principal (`panel.php`)
-Dashboard de cuatro accesos directos: **Calendario**, **Importar**, **Observaciones** y **Consulta**. Sin scroll, totalmente responsive, optimizado para uso desde tablet o móvil del personal de RR.HH.
+* `public/` — document root (bootstrap + Router + assets).
+* `app/Core/` — `Env` (cargador `.env`), `Database` (PDO singleton), `Router`, `Controller`, `Auth`, `View`.
+* `app/Controllers/` — un controlador por módulo.
+* `app/Models/` — acceso a datos (`Marcacion`, `MarcacionResumen`, `MarcacionImportacion`, `Usuario`).
+* `app/Services/` — lógica de negocio reutilizable (`ImportadorMarcaciones`, `ExcelExporter`, `ExportadorInasistencias`, `ExportadorHorasMes`).
+* `app/Support/` — helpers globales (sanitización, RUT chileno, fechas, horas).
+* `config/routes.php` — registro de rutas con middleware de autenticación/roles.
 
-### Importar Marcaciones (`importar_marcaciones.php`)
-Núcleo operacional del sistema. Permite cargar archivos `.txt` o `.csv` exportados desde el reloj de control. Características:
+Sin Composer: el autoloader propio (`spl_autoload_register`) mapea `App\` → `app/`.
 
-* **Drag & Drop** con feedback visual (verde al validar extensión).
-* **Streaming NDJSON** que emite eventos en tiempo real al navegador: `parsing`, `parsed`, `dedup`, `inserting`, `resumen`, `done`.
-* **Pre-filtrado de duplicados:** consulta por hash en lotes de 400 antes de insertar.
-* **Inserción en lotes** de 500 registros con `INSERT IGNORE` y prepared statements.
-* **Recálculo parcial:** solo se recalculan las combinaciones `(rut_base, fecha)` afectadas por la importación, usando `INSERT ... ON DUPLICATE KEY UPDATE` que respeta ediciones manuales (`editado_manual = 1`).
-* **Barra de progreso animada** con tres pasos visuales y contador de registros por segundo.
-* **Animación count-up** en los resultados finales.
-* **Registro de auditoría:** cada importación queda guardada en `marcaciones_importaciones` con archivo, período, observación, líneas leídas, insertadas, duplicadas e inválidas.
-
-### Calendario Visual (`calendario_marcaciones.php`)
-Vista interactiva de la asistencia con tres modos:
-
-* **Día:** lista de presentes y ausentes filtrable por departamento, estado y búsqueda libre. Permite editar registro o crear marcación manual para un ausente.
-* **Semana:** matriz `empleado × día` con celdas coloreadas por estado, hover overlay para edición rápida y bloque de "ausentes toda la semana".
-* **Mes:** matriz mensual con paginación cliente-side de 25 empleados por página. Distribuye los días en filas semanales por empleado. Solo incluye sábado/domingo si registró marcaciones (descansos no inflan la tabla).
-
-Funciones adicionales:
-* Filtro toggle "Solo inasistencias".
-* Navegación AJAX entre meses sin recargar (`history.pushState`).
-* Tres botones de exportación XLSX: **Inasistencias semanal**, **Inasistencias mensual** y **Horas del mes**.
-* Modal de confirmación con rango de fechas exacto antes de descargar.
-
-### Observaciones (`observaciones_marcaciones.php`)
-Bandeja de incidencias que requieren corrección manual. Por defecto lista únicamente los estados `OBSERVADO`, `INCOMPLETO` y `ERROR`. Soporta:
-
-* Filtro rápido por estado (Todos / Observados / Incompletos / Errores / OK).
-* Búsqueda combinada por nombre, número, RUT, departamento u observación.
-* Filtro por período mensual.
-* **Paginación de 50 registros por página** con ventana deslizante de ±2 páginas.
-* Detalle inline de las marcaciones brutas del día (todas las píldoras de hora).
-* Botón directo a la edición.
-
-### Editar Marcación Resumen (`editar_marcacion_resumen.php`)
-Formulario que permite ajustar manualmente entrada, salida, estado y observación de un día específico. Características:
-
-* Soporta editar registros existentes O **crear** uno nuevo cuando un funcionario faltó (no había fila en `marcaciones_resumen`).
-* Calcula automáticamente el `total_horas` cuando se completan ambas horas.
-* Detecta inconsistencias (salida antes que entrada → `ERROR`).
-* Marca `editado_manual = 1`, lo que protege los cambios ante futuras reimportaciones.
-* Navegación contextual: el botón "Volver" respeta el `return_url` recibido (calendario, observaciones, etc).
-
-### Consulta por RUT (`consulta_marcaciones.php`)
-Búsqueda histórica orientada al funcionario individual. Valida el RUT con el algoritmo módulo 11 chileno, normaliza el formato (`12345678-9`, `12.345.678-9`, `123456789` son todos válidos) y entrega:
-
-* Información del funcionario (nombre, departamento, número).
-* Tabla completa de marcaciones del período con detalle de cada hora marcada.
-* Filtro opcional por mes.
-* **Botón "Imprimir / Guardar PDF"** con CSS especializado (`@media print`) que genera un reporte formal con logo institucional, formato vertical y distribución tipo Excel sin colores ni botones.
-
-### Eliminar Mes (`eliminar_mes.php`)
-Herramienta administrativa para limpiar datos de prueba o importaciones erróneas. Borra de forma transaccional:
-
-1. Registros de `marcaciones_resumen` del rango.
-2. Registros brutos de `marcaciones`.
-3. Entradas asociadas en `marcaciones_importaciones`.
-
-Requiere doble confirmación (selección del mes + checkbox explícito) y muestra el historial completo de importaciones cargadas en el sistema.
+Toda la configuración vive en `.env` (conexión BD, `BASE_URL`, zona horaria, entorno): nada hardcodeado.
 
 ---
 
-## Exportadores XLSX
+## Requisitos
 
-El sistema incluye un generador propio de archivos Excel **sin dependencias externas** (`inc/xlsx_generator.php`). Trabaja en dos motores en cascada:
-
-1. **ZipArchive** (extensión nativa) si está disponible.
-2. **PurePhpZip** (escritor ZIP en PHP puro usando `pack()` + `crc32()`) como fallback universal.
-3. **CsvWriter** como último recurso teórico.
-
-Los reportes ocupan estilos predefinidos (`STYLE_HEADER`, `STYLE_OK`, `STYLE_FALTA`, `STYLE_FUTURO`, `STYLE_TOTALES`, `STYLE_DATE_HEADER`), con colores institucionales y soporte para celdas combinadas (`mergeCells`), auto-fit de columnas y filas, y wrap de texto multilínea.
-
-### Reportes disponibles
-
-* **`exportar_inasistencias.php`** — Reporte semanal o mensual con matriz de empleados y días. Solo incluye sábado/domingo si hubo marcaciones reales. Empleados aparecen si faltaron al menos un día hábil o trabajaron un fin de semana.
-* **`exportar_horas_mes.php`** — Reporte de horas trabajadas por funcionario, con horas esperadas, horas reales y diferencia (+/−). Incluye TODOS los funcionarios activos del mes, no solo los que faltaron.
+* PHP 8.x (probado con XAMPP 8.2).
+* MariaDB / MySQL 5.7+ (InnoDB, utf8mb4).
+* Apache con `mod_rewrite` (o cualquier servidor con reescritura al front controller).
 
 ---
 
-## Esquema de Base de Datos
+## Instalación
+
+```bash
+# 1. Clonar en htdocs de XAMPP
+git clone <repositorio> Sistema-Marcaciones
+cd Sistema-Marcaciones
+
+# 2. Configurar entorno
+cp .env.example .env
+#    Editar .env: credenciales BD, BASE_URL (sin barra final), APP_TIMEZONE
+
+# 3. Crear la base de datos y las tablas
+mysql -u root -p < database/schema.sql
+#    (o importar database/schema_demo.sql para datos de ejemplo)
+
+# 4. Crear el primer usuario administrador
+#    Ejecutar una vez el hash del password con password_hash():
+#    INSERT INTO usuarios_sistema (rut, password, nombre, rol)
+#    VALUES ('11111111-1', '<hash bcrypt>', 'Administrador', 'admin');
+
+# 5. Acceder
+#    http://localhost/Sistema-Marcaciones/  (según BASE_URL)
+```
+
+Usuarios de la base demo (`schema_demo.sql`):
+
+| RUT | Contraseña | Rol |
+|---|---|---|
+| `11111111-1` | `admin123` | admin |
+| `22222222-2` | `operador123` | operador |
+
+---
+
+## Rutas principales
+
+| Ruta | Método | Acceso | Descripción |
+|---|---|---|---|
+| `/login` | GET/POST | pública | Inicio de sesión |
+| `/logout` | GET | sesión | Cerrar sesión |
+| `/` | GET | sesión | Panel principal |
+| `/calendario` | GET | sesión | Calendario día/semana/mes |
+| `/consulta` | GET | sesión | Consulta por RUT |
+| `/observaciones` | GET | sesión | Bandeja de incidencias |
+| `/importar` | GET | sesión | Vista de importación |
+| `/importar/importar` | POST | sesión | Endpoint NDJSON |
+| `/exportar/inasistencias` | GET | sesión | XLSX inasistencias |
+| `/exportar/horas-mes` | GET | sesión | XLSX horas del mes |
+| `/marcacion/editar` | GET/POST | sesión | Editar/crear marcación |
+| `/eliminar-mes` | GET/POST | admin | Eliminar un mes completo |
+
+---
+
+## Modelo de datos
 
 ```sql
--- Marcaciones brutas (tal como salen del reloj)
-marcaciones (
+marcaciones (                -- Registros brutos del reloj de control
     id, id_importacion, dpto, nombre, numero, rut_base,
     fecha_hora, fecha, hora, hash_registro UNIQUE
 )
 
--- Resumen calculado por (rut_base, fecha)
-marcaciones_resumen (
+marcaciones_resumen (        -- Resumen calculado por (rut_base, fecha)
     id, rut_base, numero, nombre, dpto, fecha,
     entrada, salida, total_horas, cantidad_marcaciones,
     estado ENUM('OK','OBSERVADO','INCOMPLETO','ERROR'),
@@ -147,15 +116,13 @@ marcaciones_resumen (
     UNIQUE(rut_base, fecha)
 )
 
--- Auditoría de importaciones
-marcaciones_importaciones (
+marcaciones_importaciones (  -- Auditoría de cada archivo cargado
     id, nombre_archivo, periodo, observacion,
     total_lineas, total_insertadas, total_duplicadas,
     total_invalidas, creado_por, created_at
 )
 
--- Usuarios del sistema
-usuarios_sistema (
+usuarios_sistema (           -- Usuarios del sistema
     id, rut, password, nombre, rol, activo
 )
 ```
@@ -164,139 +131,87 @@ usuarios_sistema (
 
 | Estado | Condición |
 |---|---|
-| `OK` | Exactamente 2 marcaciones, entrada < salida. |
-| `OBSERVADO` | 3 o más marcaciones (revisar detalle). |
-| `INCOMPLETO` | Solo 1 marcación en el día. |
-| `ERROR` | Salida anterior a entrada, o solo existe salida. |
+| `OK` | Exactamente 2 marcaciones, entrada < salida |
+| `OBSERVADO` | 3 o más marcaciones (revisar detalle) |
+| `INCOMPLETO` | Solo 1 marcación en el día |
+| `ERROR` | Salida anterior a entrada, o solo existe salida |
 
 ---
 
-## Documentación Técnica para Desarrolladores
+## Exportadores XLSX
 
-### Helpers compartidos
+Generador propio sin librerías (`app/Services/ExcelExporter.php`) con tres motores en cascada:
 
-```php
-// Sanitización para HTML
-h($valor)                           // htmlspecialchars con UTF-8
+1. **ZipArchive** (extensión nativa) si está disponible.
+2. **PurePhpZip** (escritor ZIP en PHP puro con `pack()` + `crc32()`) como fallback universal.
+3. **CsvWriter** como último recurso teórico.
 
-// Manejo de RUT chileno
-normalizar_rut($rut)                // Quita puntos, guiones, espacios
-rut_cuerpo($rut)                    // Devuelve solo el cuerpo
-rut_dv($rut)                        // Devuelve solo el dígito verificador
-validar_rut($rut)                   // Valida módulo 11
-formatear_rut($rut)                 // Devuelve "12.345.678-9"
+Reportes disponibles:
 
-// Fechas
-nombre_dia_es($fechaYmd)            // "Lunes", "Martes", etc.
+* **`/exportar/inasistencias`** — matriz de empleados y días (semana o mes). Solo incluye sábado/domingo si hubo marcaciones reales. Aparecen los empleados que faltaron al menos un día hábil o trabajaron un fin de semana.
+* **`/exportar/horas-mes`** — horas trabajadas por funcionario en el mes, con días trabajados, horas esperadas y diferencia (+/−). Incluye todos los empleados del período.
 
-// Conversión horaria
-hms_a_minutos($hms)                 // "08:30:00" → 510
-minutos_a_hhmm_display($mins)       // 510 → "8h 30m"
-minutos_a_time($mins)               // 510 → "08:30:00"
-normalizar_hora($hora)              // Valida formato HH:MM
-```
+---
 
-### Helpers de importación (en `importar_marcaciones.php`)
+## Helpers globales (`app/Support/helpers.php`)
 
 ```php
-limpiar_numero($v)                  // Solo dígitos y K mayúscula
-obtener_rut_base($numero)           // Quita el último dígito (DV)
-parsear_linea($linea)               // Separa campos por tabs
-insertar_lote($pdo, $lote, $idImp)  // Bulk insert con INSERT IGNORE
-prefiltrar_duplicados($pdo, $rows)  // Detecta duplicados por hash
-recalcular_parcial($pdo, $pares)    // Recalcula solo (rut, fecha) afectados
-```
+h($valor)                   // htmlspecialchars UTF-8 (sanitización)
+base_url($path = '')        // URL absoluta según BASE_URL
 
-### Variables de sesión expuestas
+// RUT chileno
+normalizar_rut($rut)        // Quita puntos, guiones y espacios
+rut_cuerpo($rut)            // Solo el número sin DV
+rut_dv($rut)                // Solo el dígito verificador
+validar_rut($rut)           // Valida módulo 11
+formatear_rut($rut)         // "12.345.678-9"
 
-```php
-$_SESSION['usuario_id']             // ID numérico del usuario
-$_SESSION['usuario_nombre']         // Nombre completo (para navbar)
-$_SESSION['usuario_rol']            // 'admin' | 'operador' | etc.
+// Fechas y horas
+nombre_dia_es($fechaYmd)    // "Lunes", "Martes", ...
+hms_a_minutos($hms)         // "08:30:00" → 510
+minutos_a_hhmm_display($m)  // 510 → "8h 30m"
+minutos_a_time($m)          // 510 → "08:30:00"
+normalizar_hora($hora)      // Valida formato HH:MM
 ```
 
 ---
 
-## Estructura del Proyecto
+## Estructura del proyecto
 
 ```text
-sistema-marcaciones/
-├── inc/
-│   ├── db.php                          # Conexión PDO (no versionada)
-│   └── xlsx_generator.php              # Generador Excel + PurePhpZip
-├── static/
-│   ├── css/
-│   │   ├── calendario.css              # Tema del calendario visual
-│   │   └── login.css                   # Tema del login institucional
-│   └── img/
-│       └── logo.png                    # Logo Municipalidad
-├── auth.php                            # Guardia de sesión (no versionada)
-├── login.php                           # Pantalla de acceso
-├── logout.php                          # Cierre de sesión
-├── panel.php                           # Dashboard principal
-├── navbar.php                          # Componente de navegación global
-├── importar_marcaciones.php            # Carga masiva con NDJSON streaming
-├── calendario_marcaciones.php          # Vista día/semana/mes
-├── observaciones_marcaciones.php       # Bandeja de incidencias paginada
-├── editar_marcacion_resumen.php        # Edición manual con creación
-├── consulta_marcaciones.php            # Búsqueda por RUT + impresión PDF
-├── eliminar_mes.php                    # Limpieza administrativa
-├── exportar_inasistencias.php          # XLSX semanal/mensual
-└── exportar_horas_mes.php              # XLSX horas trabajadas
+Sistema-Marcaciones/
+├── public/                        # Document root
+│   ├── index.php                  # Bootstrap + Router
+│   ├── .htaccess                  # Reescritura al front controller
+│   └── assets/                    # css / js / img
+├── app/
+│   ├── bootstrap.php              # Env, autoloader, helpers, sesión
+│   ├── Core/                      # Env, Database, Router, Controller, Auth, View
+│   ├── Controllers/               # Auth, Panel, Calendario, Consulta, Observaciones,
+│   │                              # Importacion, Marcacion, Mes, Exportar
+│   ├── Models/                    # Marcacion, MarcacionResumen, MarcacionImportacion, Usuario
+│   ├── Services/                  # ImportadorMarcaciones, ExcelExporter,
+│   │                              # ExportadorInasistencias, ExportadorHorasMes
+│   ├── Support/                   # helpers.php
+│   └── Views/                     # layouts/ + vistas por módulo
+├── config/
+│   └── routes.php
+├── database/
+│   ├── schema.sql                 # Esquema público
+│   └── schema_demo.sql            # Datos de demostración
+├── storage/logs/                  # Logs de errores
+├── .env / .env.example
+└── AGENTS.md                      # Guía de desarrollo para agentes
 ```
 
 ---
 
-## Instalación
+## Estado de la migración
 
-```bash
-# 1. Clonar en htdocs de XAMPP
-git clone https://github.com/elJulioDev/sistema-marcaciones.git
-cd sistema-marcaciones
-
-# 2. Crear inc/db.php (no versionado)
-cat > inc/db.php <<'EOF'
-<?php
-function db() {
-    static $pdo = null;
-    if ($pdo === null) {
-        $pdo = new PDO(
-            'mysql:host=localhost;dbname=marcaciones;charset=utf8mb4',
-            'usuario', 'clave',
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
-    }
-    return $pdo;
-}
-EOF
-
-# 3. Crear auth.php (no versionado)
-cat > auth.php <<'EOF'
-<?php
-session_start();
-if (!isset($_SESSION['usuario_id'])) {
-    header('Location: login.php');
-    exit;
-}
-EOF
-
-# 4. Importar el esquema desde phpMyAdmin
-# 5. Crear el primer usuario admin desde hash.php (también ignorado en .gitignore)
-```
+El sistema se está transformando de páginas PHP planas a la arquitectura por capas descrita arriba. Las fases 1 a 6 están completas; quedan pendientes la des-rotulación de documentos y la eliminación de los archivos planos de la raíz (páginas y helpers legados que aún coexisten y que Apache sirve directamente).
 
 ---
-
-## Hoja de Ruta (Cosas por hacerse / To-Do)
-
-- [ ] **Dashboard de RR.HH.:** gráfico de tendencias mensuales (asistencias vs inasistencias) con Chart.js, top de funcionarios con más incidencias y proyección de horas extras.
-- [ ] **Notificaciones automáticas:** envío de correo al jefe directo cuando un funcionario presenta más de N inasistencias en un mes.
-- [ ] **API REST:** exposición de endpoints `/api/marcaciones/{rut}` para integración con el sistema de remuneraciones.
-- [ ] **Auditoría completa:** bitácora de quién editó cada marcación manual, con fecha y valor anterior. Actualmente solo se marca `editado_manual = 1` sin trazabilidad de cambios.
-- [ ] **Importación programada:** cron que descargue automáticamente el archivo del reloj de control vía SFTP cada noche.
-- [ ] **Permisos administrativos:** solicitudes de día libre, vacaciones, permisos administrativos integrados al cálculo del estado diario (un día con permiso aprobado no debería figurar como `ERROR`).
-- [ ] **Comparador histórico:** ver lado a lado la asistencia de un funcionario entre dos meses distintos.
-- [ ] **PDF directo del lado del servidor:** actualmente la consulta se imprime con CSS, pero podría generarse vía mPDF o Dompdf desde PHP.
-- [ ] **Roles granulares:** permisos por departamento (un jefe ve solo a su equipo).
 
 ## Licencia
+
 Proyecto de uso interno. Distribuido bajo licencia MIT para fines educativos y de referencia técnica.

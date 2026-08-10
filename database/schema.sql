@@ -1,5 +1,5 @@
 -- ============================================================================
--- SISTEMA DE MARCACIONES — Municipalidad de Coltauco
+-- SISTEMA DE MARCACIONES
 -- Esquema de base de datos (MariaDB / MySQL, InnoDB, utf8mb4)
 --
 -- Reconstruido a partir de las consultas del código fuente (rama Original).
@@ -7,9 +7,9 @@
 --     mysql -u usuario -p < database/schema.sql
 -- o importarlo desde phpMyAdmin.
 --
--- Las credenciales de conexión van en inc/db.php (archivo local, NO versionado).
--- El primer usuario administrador se crea localmente con hash.php
--- (script local, también NO versionado) usando password_hash().
+-- Las credenciales de conexión van en .env (archivo local, NO versionado;
+-- ver .env.example). El primer usuario administrador se crea con
+-- password_hash(); ver Instalación en README.md.
 -- ============================================================================
 
 SET NAMES utf8mb4;
@@ -43,7 +43,8 @@ CREATE TABLE `marcaciones_importaciones` (
 -- ============================================================================
 -- 2) MARCACIONES — Registros brutos tal como salen del reloj de control.
 --    hash_registro = md5(dpto|nombre|numero|fecha_hora) en MAYÚSCULAS
---    (ver importar_marcaciones.php): impide duplicados al reimportar.
+--    (ver app/Services/ImportadorMarcaciones.php): impide duplicados al
+--    reimportar.
 --    rut_base = número del RUT sin el dígito verificador.
 -- ============================================================================
 CREATE TABLE `marcaciones` (
@@ -60,7 +61,7 @@ CREATE TABLE `marcaciones` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_hash_registro` (`hash_registro`),
     KEY `idx_rut_fecha` (`rut_base`, `fecha`),              -- usada por recalcular_parcial()
-    KEY `idx_fecha` (`fecha`),                              -- usada por eliminar_mes.php
+    KEY `idx_fecha` (`fecha`),                              -- usada por MesController (eliminar mes)
     CONSTRAINT `fk_marcaciones_importacion`
         FOREIGN KEY (`id_importacion`)
         REFERENCES `marcaciones_importaciones` (`id`)
@@ -102,8 +103,7 @@ CREATE TABLE `marcaciones_resumen` (
 -- ============================================================================
 -- 4) USUARIOS DEL SISTEMA
 --    password = password_hash() de PHP (bcrypt, VARCHAR(255)).
---    rol: 'admin' | 'operador' (el control por rol está documentado pero
---    NO está implementado en el código actual).
+--    rol: 'admin' | 'operador' (control de roles implementado en el Router).
 -- ============================================================================
 CREATE TABLE `usuarios_sistema` (
     `id`        INT UNSIGNED    NOT NULL AUTO_INCREMENT,
