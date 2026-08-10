@@ -37,9 +37,9 @@ storage/logs/
 1. **Fundación (hecha):** `.env.example`, `database/schema_demo.sql`, `.gitignore` actualizado, este plan.
 2. **Core (hecha):** `Env` (cargador .env), `Database` (PDO singleton), autoloader PSR-4 sin Composer, `public/index.php` + `Router`, helpers centralizados en `app/Support`, `View` + layout base, `base_url()` en todas las URLs/assets, `.htaccess` raíz (coexiste con el legado). Prueba en `http://localhost/Sistema-Marcaciones/`.
 3. **Auth y roles (hecha):** `AuthController` (login/logout), `Core/Auth` (sesión + roles), `Models/Usuario`, middleware en `Router` (3er parámetro de `get`/`post`: `null` pública, `'login'` cualquier sesión, `'admin'` o `['admin','operador']` roles), navbar en layout con usuario + salir, vistas `auth/login` y `errors/403`. El legado (`login.php`) sigue sirviéndose aparte.
-4. **Migración de módulos** a Controllers/Models/Views: panel, consulta, calendario, observaciones, editar resumen, eliminar mes.
-5. **Importación:** mover lógica NDJSON a `Services/ImportadorMarcaciones` (parseo, dedup md5, `INSERT IGNORE` lotes 500, `recalcular_parcial`), endpoint JSON.
-6. **Exportadores:** mover `inc/xlsx_generator.php` a `Services/ExcelExporter`, controladores de exportación.
+4. **Migración de módulos (hecha):** controllers/models/vistas para panel, consulta, calendario, observaciones, editar resumen, eliminar mes. Rutas `/marcacion/editar`, `/eliminar-mes` (admin).
+5. **Importación (hecha):** lógica NDJSON en `Services/ImportadorMarcaciones` (parseo, dedup md5, `INSERT IGNORE` lotes 500, `recalcular_parcial` respeta `editado_manual=1`), endpoint JSON `POST /importar/importar`.
+6. **Exportadores (hecha):** `inc/xlsx_generator.php` movido a `Services/ExcelExporter` (mismo generador sin librerías: ZipArchive → PurePhpZip → CsvWriter); `Services/ExportadorInasistencias` y `Services/ExportadorHorasMes` (lógica portada de los archivos raíz) + `Controllers/ExportarController`. Rutas `GET /exportar/inasistencias?rango=...&mes=...&fecha=...` y `GET /exportar/horas-mes?mes=...&dpto=...&q=...` (auth `login`). `calendario.js` apunta a las rutas nuevas.
 7. **Des-rotulación:** quitar textos/logo/footer Coltauco, `README.md` nuevo.
 8. **Limpieza/QA:** borrar archivos planos de la raíz (`login.php`, `panel.php`, `inc/db.php`, `auth.php`, `hash.php`, `navbar.php`, etc.), `php -l` global, probar flujo completo.
 
