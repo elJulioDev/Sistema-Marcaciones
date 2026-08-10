@@ -117,7 +117,7 @@ use App\Core\View;
 </div>
 
 <script>
-window.D0 = <?= json_encode($data, JSON_UNESCAPED_UNICODE) ?>;
+window.D0 = <?= json_encode($data['data'], JSON_UNESCAPED_UNICODE) ?>;
 window.CAL_CONFIG = {
     baseApp: <?= json_encode(base_url()) ?>,
     base: <?= json_encode(base_url('/calendario')) ?>,
