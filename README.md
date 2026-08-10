@@ -208,7 +208,7 @@ Sistema-Marcaciones/
 
 ## Estado de la migración
 
-El sistema se está transformando de páginas PHP planas a la arquitectura por capas descrita arriba. Las fases 1 a 6 están completas; quedan pendientes la des-rotulación de documentos y la eliminación de los archivos planos de la raíz (páginas y helpers legados que aún coexisten y que Apache sirve directamente).
+La reestructuración desde las páginas PHP planas a la arquitectura por capas descrita arriba está **completa**. Se eliminaron los archivos planos de la raíz, los helpers legados (`inc/db.php`, `auth.php`, `hash.php`, `navbar.php`) y los assets de `static/` (incluidos los logos institucionales). Todo el sistema se sirve desde `public/` mediante el front controller.
 
 ---
 

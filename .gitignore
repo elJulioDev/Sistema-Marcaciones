@@ -3,21 +3,14 @@
 .env.*
 !.env.example
 
-# ── Archivos locales obligatorios (legado plano; se eliminan en la reestructuración) ──
-inc/db.php
-auth.php
-hash.php
-
 # ── Logs y caché ────────────────────────────────────────────
 *.log
 error_log
 storage/logs/*
 !storage/logs/.gitkeep
 
-# ── Datos locales de prueba (legado, no públicos) ───────────
+# ── Datos locales de prueba (archivos a importar) ───────────
 *.txt
-generador_datos.php
-datos/*
 
 # ── SO ──────────────────────────────────────────────────────
 .DS_Store
