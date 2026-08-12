@@ -653,8 +653,7 @@ code {
     flex-direction: column;
 }
 .chrome-main--fill > .container {
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
+    padding: 1.5rem;
 }
 
 /* ── Footer (dentro del área scrolleable) ──────────────────── */
