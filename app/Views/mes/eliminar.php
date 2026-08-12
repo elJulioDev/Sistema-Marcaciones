@@ -81,7 +81,7 @@ declare(strict_types=1);
                             </td>
                             <td><?= number_format((int) $imp['total_lineas'], 0, ',', '.') ?></td>
                             <td><?= number_format((int) $imp['total_insertadas'], 0, ',', '.') ?></td>
-                            <td style="color: #6b7280;"><?= h($imp['observacion']) ?></td>
+                            <td class="small"><?= h($imp['observacion']) ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
