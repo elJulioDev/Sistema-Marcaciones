@@ -55,87 +55,178 @@ function url(mes,fecha,modo,dpto,estado,q){
 }
 
 /* ── Export Modal ─────────────────────────────────────────── */
-var _exportUrl = '';
+var _exp = { period: 'dia', fecha: '', mes: '', soloFaltas: false };
 
-function showExportModal(type){
-    var modal   = document.getElementById('export-modal');
-    var icon    = document.getElementById('modal-icon');
-    var title   = document.getElementById('modal-title');
-    var rlabel  = document.getElementById('modal-range-label');
-    var rval    = document.getElementById('modal-range-val');
-    var note    = document.getElementById('modal-note');
+function openExportModal(){
+    _exp.period = S.modo === 'semana' ? 'semana' : S.modo === 'mes' ? 'mes' : 'dia';
+    _exp.fecha  = S.fecha;
+    _exp.mes    = S.mes;
+    _exp.soloFaltas = false;
 
-    if(type === 'semana'){
-        var sem     = cur.semana;
-        var lunes   = sem[0];
+    document.getElementById('exp-faltas-toggle').checked = false;
+    document.getElementById('export-modal').classList.add('open');
 
-        var ultimoDia = sem[4]; // Viernes por defecto
-        if (cur.dots && cur.dots[sem[6].fecha] && parseInt(cur.dots[sem[6].fecha].total) > 0) {
-            ultimoDia = sem[6];
-        } else if (cur.dots && cur.dots[sem[5].fecha] && parseInt(cur.dots[sem[5].fecha].total) > 0) {
-            ultimoDia = sem[5];
-        }
+    document.querySelectorAll('.exp-period-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.period === _exp.period);
+    });
 
-        var weekNum = cur.numSemana;
-        var mesL    = cur.mesLabel;
-
-        icon.className = 'modal-icon green';
-        title.textContent = 'Descargar reporte semanal';
-        rlabel.textContent = 'Semana ' + weekNum + ' · ' + mesL;
-        rval.textContent = formatFechaLarga(lunes.fecha) + '  →  ' + formatFechaLarga(ultimoDia.fecha);
-        note.textContent = 'Se exportará un archivo con los empleados que faltaron de Lunes a Viernes, incluyendo el fin de semana si hubo asistencia.';
-        _exportUrl = BASE_APP+'/exportar/inasistencias?rango=semana&mes='+S.mes+'&fecha='+S.fecha;
-
-    } else if(type === 'mes'){
-        var mesPartes = S.mes.split('-');
-        var nombreMes = MESES_FULL[parseInt(mesPartes[1])-1];
-
-        var primerDia = S.mes+'-01';
-        var lastDay   = new Date(parseInt(mesPartes[0]), parseInt(mesPartes[1]), 0);
-        var ultimoDia = S.mes+'-'+(lastDay.getDate()<10?'0':'')+lastDay.getDate();
-
-        icon.className = 'modal-icon blue';
-        icon.style.background = '';
-        icon.style.color      = '';
-        title.textContent = 'Descargar inasistencias del mes';
-        rlabel.textContent = nombreMes + ' ' + mesPartes[0];
-        rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
-        note.textContent = 'Se exportará un archivo con los empleados que faltaron al menos un día hábil, añadiendo columnas extra para los fines de semana con actividad.';
-        _exportUrl = BASE_APP+'/exportar/inasistencias?rango=mes&mes='+S.mes+'&fecha='+S.fecha;
-
-    } else if(type === 'horas'){
-        var mesPartes = S.mes.split('-');
-        var nombreMes = MESES_FULL[parseInt(mesPartes[1])-1];
-
-        var primerDia = S.mes+'-01';
-        var lastDay   = new Date(parseInt(mesPartes[0]), parseInt(mesPartes[1]), 0);
-        var ultimoDia = S.mes+'-'+(lastDay.getDate()<10?'0':'')+lastDay.getDate();
-
-        icon.className = 'modal-icon';
-        icon.style.background = '#ede9fe';
-        icon.style.color      = '#6d28d9';
-        title.textContent = 'Descargar horas del mes';
-        rlabel.textContent = nombreMes + ' ' + mesPartes[0] + ' — Todos los funcionarios';
-        rval.textContent = formatFechaLarga(primerDia) + '  →  ' + formatFechaLarga(ultimoDia);
-        note.textContent = 'Se exportará un Excel con TODOS los funcionarios: horas por día, total trabajado, horas esperadas y diferencia (+/−) respecto al mes completo.';
-        _exportUrl = BASE_APP+'/exportar/horas-mes?mes='+S.mes+'&dpto='+encodeURIComponent(S.dpto)+'&q='+encodeURIComponent(S.q);
-    }
-    modal.classList.add('open');
+    renderExpPicker();
+    renderExpPreview();
 }
 
 function closeExportModal(){
     document.getElementById('export-modal').classList.remove('open');
-    _exportUrl = '';
 }
 
+/* ── Period picker ────────────────────────────────────────── */
+function renderExpPicker(){
+    var el = document.getElementById('exp-picker-controls');
+    var p = _exp.period;
+
+    if(p === 'dia'){
+        el.innerHTML = '<input type="date" id="exp-date-input" class="exp-date-input" value="' + _exp.fecha + '">';
+        document.getElementById('exp-date-input').addEventListener('change', function(e){
+            _exp.fecha = e.target.value;
+            var partes = _exp.fecha.split('-');
+            _exp.mes = partes[0] + '-' + partes[1];
+            renderExpPreview();
+        });
+    } else if(p === 'semana'){
+        var info = getWeekInfo(0);
+        _exp.fecha = info.lunes;
+        el.innerHTML =
+            '<div class="exp-week-nav">' +
+                '<button class="ib exp-week-btn" id="exp-week-prev">&#8249;</button>' +
+                '<div class="exp-week-info">' +
+                    '<span class="exp-week-num">Semana ' + info.num + '</span>' +
+                    '<span class="exp-week-range">' + formatFechaLarga(info.lunes) + '  &rarr;  ' + formatFechaLarga(info.domingo) + '</span>' +
+                '</div>' +
+                '<button class="ib exp-week-btn" id="exp-week-next">&#8250;</button>' +
+            '</div>';
+        document.getElementById('exp-week-prev').addEventListener('click', function(){
+            _exp.fecha = getWeekInfo(-1, _exp.fecha).lunes;
+            _exp.mes = _exp.fecha.substring(0, 7);
+            renderExpPicker();
+            renderExpPreview();
+        });
+        document.getElementById('exp-week-next').addEventListener('click', function(){
+            _exp.fecha = getWeekInfo(1, _exp.fecha).lunes;
+            _exp.mes = _exp.fecha.substring(0, 7);
+            renderExpPicker();
+            renderExpPreview();
+        });
+    } else {
+        el.innerHTML = '<input type="month" id="exp-month-input" class="exp-month-input" value="' + _exp.mes + '">';
+        document.getElementById('exp-month-input').addEventListener('change', function(e){
+            _exp.mes = e.target.value;
+            renderExpPreview();
+        });
+    }
+}
+
+function getWeekInfo(offset, baseFecha){
+    var fecha = baseFecha || _exp.fecha;
+    var base = new Date(fecha + 'T12:00:00');
+    var dow = base.getDay();
+    var diff = dow === 0 ? -6 : 1 - dow;
+    var monday = new Date(base);
+    monday.setDate(monday.getDate() + diff + (offset * 7));
+
+    var sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+
+    var pad = function(n){ return n < 10 ? '0' + n : '' + n; };
+    var lunes    = monday.getFullYear() + '-' + pad(monday.getMonth()+1) + '-' + pad(monday.getDate());
+    var domingo  = sunday.getFullYear() + '-' + pad(sunday.getMonth()+1) + '-' + pad(sunday.getDate());
+
+    var d4 = new Date(monday.getTime());
+    d4.setUTCDate(d4.getUTCDate() + 4 - (d4.getUTCDay()||7));
+    var ys = new Date(Date.UTC(d4.getUTCFullYear(),0,1));
+    var wk = Math.ceil((((d4-ys)/86400000)+1)/7);
+
+    return { num: wk, lunes: lunes, domingo: domingo };
+}
+
+/* ── Preview ──────────────────────────────────────────────── */
+function renderExpPreview(){
+    var el = document.getElementById('exp-preview');
+    var p = _exp.period;
+    var texto = '';
+
+    if(p === 'dia'){
+        texto = formatFechaLarga(_exp.fecha);
+    } else if(p === 'semana'){
+        var info = getWeekInfo(0, _exp.fecha);
+        texto = 'Semana ' + info.num + ' — ' + formatFechaCorta(info.lunes) + ' al ' + formatFechaCorta(info.domingo);
+    } else {
+        var partes = _exp.mes.split('-');
+        texto = MESES_FULL[parseInt(partes[1])-1] + ' ' + partes[0];
+    }
+
+    el.innerHTML =
+        '<div class="exp-preview-row">' +
+            '<div class="exp-preview-icon"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>' +
+            '<div class="exp-preview-text"><strong>' + esc(texto) + '</strong></div>' +
+        '</div>';
+}
+
+/* ── URL builder ──────────────────────────────────────────── */
+function buildExportUrl(){
+    var p = _exp.period;
+    var url = BASE_APP + '/exportar/inasistencias?rango=' + p;
+
+    if(p === 'dia'){
+        url += '&mes=' + _exp.mes + '&fecha=' + _exp.fecha;
+    } else if(p === 'semana'){
+        url += '&mes=' + _exp.mes + '&fecha=' + _exp.fecha;
+    } else {
+        url += '&mes=' + _exp.mes + '&fecha=' + _exp.mes + '-01';
+    }
+
+    if(_exp.soloFaltas) url += '&faltas=1';
+    return url;
+}
+
+/* ── Event listeners ──────────────────────────────────────── */
+document.getElementById('btn-export-toggle').addEventListener('click', openExportModal);
+
 document.getElementById('modal-confirm').addEventListener('click', function(){
-    var urlParaDescargar = _exportUrl;
+    var u = buildExportUrl();
     closeExportModal();
-    if(urlParaDescargar) window.open(urlParaDescargar, '_blank');
+    if(u) window.open(u, '_blank');
 });
+document.getElementById('modal-cancel-btn').addEventListener('click', closeExportModal);
 document.getElementById('modal-cancel').addEventListener('click', closeExportModal);
 document.getElementById('export-modal').addEventListener('click', function(e){
     if(e.target === this) closeExportModal();
+});
+
+document.getElementById('exp-period-group').addEventListener('click', function(e){
+    var btn = e.target.closest('.exp-period-btn');
+    if(!btn || btn.classList.contains('active')) return;
+
+    _exp.period = btn.dataset.period;
+    document.querySelectorAll('.exp-period-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+
+    if(_exp.period === 'semana'){
+        var info = getWeekInfo(0);
+        _exp.fecha = info.lunes;
+        _exp.mes = info.lunes.substring(0, 7);
+    } else if(_exp.period === 'mes'){
+        _exp.mes = S.mes;
+    } else {
+        _exp.fecha = S.fecha;
+        _exp.mes = S.fecha.substring(0, 7);
+    }
+
+    renderExpPicker();
+    renderExpPreview();
+});
+
+document.getElementById('exp-faltas-toggle').addEventListener('change', function(e){
+    _exp.soloFaltas = e.target.checked;
+    renderExpPreview();
 });
 
 /* ── Render: header ───────────────────────────────────────── */
@@ -612,35 +703,6 @@ document.getElementById('f-ausencias').addEventListener('change',function(e){
     S.ausencias=e.target.checked;
     S.pagina = 1;
     renderAll(cur); // Re-render local para aplicar filtro local
-});
-
-/* ── Exportar (con modal) ─────────────────────────────────── */
-document.getElementById('btn-exp-sem').addEventListener('click', function(){
-    closeExportMenu();
-    showExportModal('semana');
-});
-document.getElementById('btn-exp-mes').addEventListener('click', function(){
-    closeExportMenu();
-    showExportModal('mes');
-});
-document.getElementById('btn-exp-horas').addEventListener('click', function(){
-    closeExportMenu();
-    showExportModal('horas');
-});
-
-/* ── Export dropdown ──────────────────────────────────────── */
-var expMenu = document.getElementById('export-menu');
-var expToggle = document.getElementById('btn-export-toggle');
-
-function closeExportMenu(){ expMenu.classList.remove('open'); }
-
-expToggle.addEventListener('click', function(e){
-    e.stopPropagation();
-    expMenu.classList.toggle('open');
-});
-
-document.addEventListener('click', function(e){
-    if(!e.target.closest('.exp-dd')) closeExportMenu();
 });
 
 /* ── Search debounce ─────────────────────────────────────────*/

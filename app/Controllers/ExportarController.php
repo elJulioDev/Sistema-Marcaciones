@@ -24,6 +24,7 @@ final class ExportarController extends Controller
                 (string) ($_GET['rango'] ?? 'semana'),
                 (string) ($_GET['mes'] ?? ''),
                 (string) ($_GET['fecha'] ?? ''),
+                ($_GET['faltas'] ?? '') === '1',
             );
             self::enviar($resultado);
         } catch (Throwable $e) {
@@ -40,6 +41,7 @@ final class ExportarController extends Controller
                 (string) ($_GET['mes'] ?? ''),
                 (string) ($_GET['dpto'] ?? ''),
                 (string) ($_GET['q'] ?? ''),
+                ($_GET['faltas'] ?? '') === '1',
             );
             self::enviar($resultado);
         } catch (Throwable $e) {

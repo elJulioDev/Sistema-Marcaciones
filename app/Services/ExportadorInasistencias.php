@@ -27,7 +27,7 @@ final class ExportadorInasistencias
      *
      * @return array{data:string, nombre:string, tipo:string}
      */
-    public function generar(string $rango = 'semana', string $mes = '', string $fecha = ''): array
+    public function generar(string $rango = 'semana', string $mes = '', string $fecha = '', bool $soloFaltas = false): array
     {
         $pdo = Database::pdo();
 
@@ -40,7 +40,9 @@ final class ExportadorInasistencias
         // ── 1. Determinar fechas candidatas del período ───────────────
         $fechasCandidatas = [];
 
-        if ($rango === 'semana') {
+        if ($rango === 'dia') {
+            $fechasCandidatas[] = $fecha;
+        } elseif ($rango === 'semana') {
             $selDate = new \DateTime($fecha);
             $selDOW  = (int)$selDate->format('N');
 
@@ -89,7 +91,14 @@ final class ExportadorInasistencias
 
         // ── 4. Títulos dinámicos ─────────────────────────────────────
         $numSemana = 0;
-        if ($rango === 'semana') {
+        if ($rango === 'dia') {
+            $dtFecha   = new \DateTime($fecha);
+            $diasNombres = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+            $diaNombre = $diasNombres[(int)$dtFecha->format('w')];
+
+            $tituloArchivo = 'Reporte_' . ucfirst($diaNombre) . '_' . $dtFecha->format('d-m-Y') . $xlsx->getExtension();
+            $tituloPeriodo = ucfirst($diaNombre) . ' ' . $dtFecha->format('d/m/Y');
+        } elseif ($rango === 'semana') {
             $numSemana = (int)$lunes->format('W');
 
             $primerDia = new \DateTime($diasRevisar[0]);
@@ -127,6 +136,40 @@ final class ExportadorInasistencias
             );
             $stmtEmp->execute($diasRevisar);
             $empleados = $stmtEmp->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        // ── 5b. Filtrar solo empleados con faltas (si se solicita) ────
+        if ($soloFaltas && $empleados !== []) {
+            $empsConFalta = [];
+            $phCheck     = implode(',', array_fill(0, count($diasRevisar), '?'));
+            $stmtCheck   = $pdo->prepare(
+                "SELECT rut_base, fecha FROM marcaciones_resumen WHERE fecha IN ($phCheck)"
+            );
+            $stmtCheck->execute($diasRevisar);
+            $marcasCheck = $stmtCheck->fetchAll(PDO::FETCH_ASSOC);
+
+            $marcasSet = [];
+            foreach ($marcasCheck as $r) {
+                $marcasSet[$r['rut_base']][$r['fecha']] = true;
+            }
+
+            $hoyCheck = date('Y-m-d');
+            foreach ($empleados as $emp) {
+                $rut = $emp['rut_base'];
+                foreach ($diasRevisar as $dia) {
+                    $dtAux   = new \DateTime($dia);
+                    $esFinde = ((int)$dtAux->format('N') >= 6);
+                    if ($esFinde || $dia > $hoyCheck) {
+                        continue;
+                    }
+                    if (!isset($marcasSet[$rut][$dia])) {
+                        $empsConFalta[$rut] = true;
+                        break;
+                    }
+                }
+            }
+
+            $empleados = array_values(array_filter($empleados, static fn(array $e): bool => isset($empsConFalta[$e['rut_base']])));
         }
 
         // ── 6. Consultar marcaciones del período ─────────────────────

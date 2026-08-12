@@ -5,18 +5,19 @@ declare(strict_types=1);
 use App\Core\View;
 
 ob_start(); ?>
-<div class="wrap">
+<div class="container">
+
+<div class="page-header">
+  <div class="page-header-title">
+    <span class="page-header-icon"><i class="bi bi-cloud-arrow-up"></i></span>
+    <div>
+      <h1>Importar marcaciones</h1>
+      <p class="page-header-sub">Carga el archivo exportado desde el reloj de control horario.</p>
+    </div>
+  </div>
+</div>
 
 <div class="card" id="upload-card">
-  <div class="card-hd">
-    <svg width="26" height="26" fill="none" stroke="var(--blue)" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="17 8 12 3 7 8"/>
-      <line x1="12" y1="3" x2="12" y2="15"/>
-    </svg>
-    <h1>Importar Marcaciones</h1>
-  </div>
   <p class="card-sub">
     Sube el archivo <strong>TXT o CSV</strong> exportado desde el reloj de control.
     Los registros duplicados se detectan y omiten automáticamente usando un hash

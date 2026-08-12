@@ -35,7 +35,7 @@ final class ExportadorHorasMes
      *
      * @return array{data:string, nombre:string, tipo:string}
      */
-    public function generar(string $mes = '', string $dpto = '', string $q = ''): array
+    public function generar(string $mes = '', string $dpto = '', string $q = '', bool $soloFaltas = false): array
     {
         $pdo = Database::pdo();
 
@@ -131,6 +131,26 @@ final class ExportadorHorasMes
         }
 
         uasort($infoEmp, static fn(array $a, array $b): int => strcmp($a['nombre'], $b['nombre']));
+
+        // ── 6b. Filtrar solo empleados con faltas (si se solicita) ─────
+        if ($soloFaltas) {
+            $empConFalta = [];
+            foreach ($infoEmp as $rut => $emp) {
+                foreach ($diasColumna as $dia) {
+                    $dt      = new \DateTime($dia);
+                    $dow     = (int)$dt->format('N');
+                    $esFinde = ($dow >= 6);
+                    if ($esFinde || $dia > $hoy) {
+                        continue;
+                    }
+                    if (!isset($marcasPorEmp[$rut][$dia])) {
+                        $empConFalta[$rut] = true;
+                        break;
+                    }
+                }
+            }
+            $infoEmp = array_filter($infoEmp, static fn(array $emp): bool => isset($empConFalta[$emp['rut']]));
+        }
 
         // ── 6. Calcular días hábiles pasados (horas esperadas) ───────
         $diasHabilesPasados = 0;
