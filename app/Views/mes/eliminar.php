@@ -2,8 +2,17 @@
 
 declare(strict_types=1);
 ?>
+<div class="page-header">
+    <div class="page-header-title">
+        <span class="page-header-icon"><i class="bi bi-trash"></i></span>
+        <div>
+            <h1>Eliminar marcaciones de un mes</h1>
+            <p class="page-header-sub">Herramienta administrativa para limpiar datos de un período completo.</p>
+        </div>
+    </div>
+</div>
+
 <section class="card">
-    <h1 class="danger-title">Eliminar marcaciones de un mes</h1>
     <p>Esta herramienta borrará de forma permanente <strong>todos los registros, resúmenes calculados y el historial de importación</strong> del mes seleccionado. Úsala para limpiar datos basura generados por pruebas o importaciones erróneas.</p>
 
     <?php if ($mensaje !== ''): ?>

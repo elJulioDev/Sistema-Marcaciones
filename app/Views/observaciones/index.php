@@ -18,9 +18,17 @@ $urlEstado = static function (string $estado) use ($periodo) {
     return '?' . http_build_query($query);
 };
 ?>
-<section class="card">
-    <h1>Observaciones de marcaciones</h1>
+<div class="page-header">
+    <div class="page-header-title">
+        <span class="page-header-icon"><i class="bi bi-exclamation-triangle"></i></span>
+        <div>
+            <h1>Observaciones de marcaciones</h1>
+            <p class="page-header-sub">Incidencias registradas: observados, incompletos y errores.</p>
+        </div>
+    </div>
+</div>
 
+<section class="card">
     <div class="topbar">
         <a href="<?= base_url('/observaciones') ?>" class="<?= $filtroEstado === '' ? 'active' : '' ?>">Todos</a>
         <a href="<?= base_url('/observaciones') . $urlEstado('OBSERVADO') ?>" class="<?= $filtroEstado === 'OBSERVADO' ? 'active' : '' ?>">Observados</a>

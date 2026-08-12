@@ -2,9 +2,17 @@
 
 declare(strict_types=1);
 ?>
-<section class="card">
-    <h1>Consulta de marcaciones</h1>
+<div class="page-header">
+    <div class="page-header-title">
+        <span class="page-header-icon"><i class="bi bi-search"></i></span>
+        <div>
+            <h1>Consulta de marcaciones</h1>
+            <p class="page-header-sub">Busca el registro de asistencia por RUT de funcionario.</p>
+        </div>
+    </div>
+</div>
 
+<section class="card">
     <form method="get" class="filters">
         <input
             type="text"
