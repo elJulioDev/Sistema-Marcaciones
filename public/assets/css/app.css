@@ -243,6 +243,9 @@
     box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), .30);
 }
 
+[data-theme="dark"] .filters a.secondary { background: var(--color-surface-3); color: var(--color-text-muted); }
+[data-theme="dark"] .filters a.secondary:hover { background: var(--color-surface-hover); color: var(--color-text); }
+
 /* ════════════════════════════════════════════════════════════════════
    2. RESET & BASE
    ════════════════════════════════════════════════════════════════════ */
