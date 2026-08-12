@@ -29,88 +29,86 @@ $urlEstado = static function (string $estado) use ($periodo) {
 </div>
 
 <section class="card">
-    <div class="topbar">
-        <a href="<?= base_url('/observaciones') ?>" class="<?= $filtroEstado === '' ? 'active' : '' ?>">Todos</a>
-        <a href="<?= base_url('/observaciones') . $urlEstado('OBSERVADO') ?>" class="<?= $filtroEstado === 'OBSERVADO' ? 'active' : '' ?>">Observados</a>
-        <a href="<?= base_url('/observaciones') . $urlEstado('INCOMPLETO') ?>" class="<?= $filtroEstado === 'INCOMPLETO' ? 'active' : '' ?>">Incompletos</a>
-        <a href="<?= base_url('/observaciones') . $urlEstado('ERROR') ?>" class="<?= $filtroEstado === 'ERROR' ? 'active' : '' ?>">Errores</a>
-        <a href="<?= base_url('/observaciones') . $urlEstado('OK') ?>" class="<?= $filtroEstado === 'OK' ? 'active' : '' ?>">OK</a>
+    <div class="obs-filters">
+        <div class="obs-tabs">
+            <a href="<?= base_url('/observaciones') ?>" class="obs-tab <?= $filtroEstado === '' ? 'active' : '' ?>">Todos</a>
+            <a href="<?= base_url('/observaciones') . $urlEstado('OBSERVADO') ?>" class="obs-tab <?= $filtroEstado === 'OBSERVADO' ? 'active' : '' ?>">Observados</a>
+            <a href="<?= base_url('/observaciones') . $urlEstado('INCOMPLETO') ?>" class="obs-tab <?= $filtroEstado === 'INCOMPLETO' ? 'active' : '' ?>">Incompletos</a>
+            <a href="<?= base_url('/observaciones') . $urlEstado('ERROR') ?>" class="obs-tab <?= $filtroEstado === 'ERROR' ? 'active' : '' ?>">Errores</a>
+            <a href="<?= base_url('/observaciones') . $urlEstado('OK') ?>" class="obs-tab <?= $filtroEstado === 'OK' ? 'active' : '' ?>">OK</a>
+        </div>
+
+        <form method="get" class="obs-search">
+            <?php if ($filtroEstado !== ''): ?>
+                <input type="hidden" name="estado" value="<?= h($filtroEstado) ?>">
+            <?php endif; ?>
+
+            <div class="obs-search-fields">
+                <div class="obs-field">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="q" placeholder="Buscar por nombre, número, RUT, dpto u observación" value="<?= h($q) ?>">
+                </div>
+                <div class="obs-field obs-field--sm">
+                    <i class="bi bi-calendar3"></i>
+                    <input type="month" name="periodo" value="<?= h($periodo) ?>">
+                </div>
+                <button type="submit" class="obs-btn obs-btn--primary">Buscar</button>
+                <a class="obs-btn obs-btn--ghost" href="<?= base_url('/observaciones') . ($filtroEstado !== '' ? '?estado=' . urlencode($filtroEstado) : '') ?>">Limpiar</a>
+            </div>
+        </form>
     </div>
 
-    <form method="get" class="filters">
-        <?php if ($filtroEstado !== ''): ?>
-            <input type="hidden" name="estado" value="<?= h($filtroEstado) ?>">
-        <?php endif; ?>
-
-        <input
-            type="text"
-            name="q"
-            placeholder="Buscar por nombre, número, rut base, dpto u observación"
-            value="<?= h($q) ?>"
-        >
-        <input
-            type="month"
-            name="periodo"
-            value="<?= h($periodo) ?>"
-        >
-        <button type="submit">Buscar</button>
-
-        <a class="secondary" href="<?= base_url('/observaciones') . ($filtroEstado !== '' ? '?estado=' . urlencode($filtroEstado) : '') ?>">Limpiar</a>
-    </form>
-
-    <div class="table-wrap">
-        <table>
+    <div class="obs-table-wrap">
+        <table class="obs-table">
             <thead>
                 <tr>
-                    <th>Fecha</th>
-                    <th>Funcionario</th>
-                    <th>Dpto.</th>
-                    <th>No.</th>
-                    <th>Cant. marcaciones</th>
-                    <th>Detalle marcaciones</th>
-                    <th>Entrada</th>
-                    <th>Salida</th>
-                    <th>Total</th>
-                    <th>Estado</th>
-                    <th>Observación</th>
-                    <th>Editado</th>
-                    <th>Acción</th>
+                    <th class="col-fecha">Fecha</th>
+                    <th class="col-func">Funcionario</th>
+                    <th class="col-horario">Horario</th>
+                    <th class="col-marc">Marcaciones</th>
+                    <th class="col-estado">Estado</th>
+                    <th class="col-obs">Observación</th>
+                    <th class="col-accion">Acción</th>
                 </tr>
             </thead>
             <tbody>
             <?php if (!$rows): ?>
                 <tr>
-                    <td colspan="13" class="empty">No se encontraron registros.</td>
+                    <td colspan="7" class="empty">No se encontraron registros.</td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($rows as $r): ?>
                     <tr>
-                        <td>
-                            <strong><?= h(nombre_dia_es($r['fecha'])) ?></strong><br>
-                            <?= h(date('d/m/Y', strtotime($r['fecha']))) ?>
+                        <td class="col-fecha">
+                            <span class="obs-dia"><?= h(nombre_dia_es($r['fecha'])) ?></span>
+                            <span class="obs-fecha"><?= h(date('d/m/Y', strtotime($r['fecha']))) ?></span>
                         </td>
-                        <td>
-                            <strong><?= h($r['nombre']) ?></strong><br>
-                            <span class="small">RUT base: <?= h($r['rut_base']) ?></span>
+                        <td class="col-func">
+                            <span class="obs-nombre"><?= h($r['nombre']) ?></span>
+                            <span class="obs-meta">No. <?= h($r['numero']) ?> · <?= h($r['dpto']) ?></span>
+                            <span class="obs-meta">RUT <?= h($r['rut_base']) ?></span>
                         </td>
-                        <td><?= h($r['dpto']) ?></td>
-                        <td><?= h($r['numero']) ?></td>
-                        <td style="text-align:center;"><?= (int) $r['cantidad_marcaciones'] ?></td>
-                        <td>
-                            <div class="marcas">
+                        <td class="col-horario">
+                            <div class="obs-horario">
+                                <span class="obs-ent"><?= $r['entrada'] ? h(substr((string) $r['entrada'], 0, 5)) : '—' ?></span>
+                                <i class="bi bi-arrow-right-short"></i>
+                                <span class="obs-sal"><?= $r['salida'] ? h(substr((string) $r['salida'], 0, 5)) : '—' ?></span>
+                            </div>
+                            <span class="obs-total"><?= $r['total_horas'] ? h(substr((string) $r['total_horas'], 0, 5)) : '—' ?></span>
+                        </td>
+                        <td class="col-marc">
+                            <div class="obs-marcas">
                                 <?php if (!empty($r['detalle_marcaciones'])): ?>
                                     <?php foreach ($r['detalle_marcaciones'] as $m): ?>
-                                        <span class="marca-item"><?= h(substr((string) $m['hora'], 0, 5)) ?></span>
+                                        <span class="obs-chip"><?= h(substr((string) $m['hora'], 0, 5)) ?></span>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <span class="small">Sin detalle</span>
+                                    <span class="obs-meta">Sin detalle</span>
                                 <?php endif; ?>
                             </div>
+                            <span class="obs-cant"><?= (int) $r['cantidad_marcaciones'] ?> marca<?= (int) $r['cantidad_marcaciones'] !== 1 ? 's' : '' ?></span>
                         </td>
-                        <td><strong><?= $r['entrada'] ? h(substr((string) $r['entrada'], 0, 5)) : '-' ?></strong></td>
-                        <td><strong><?= $r['salida'] ? h(substr((string) $r['salida'], 0, 5)) : '-' ?></strong></td>
-                        <td><?= $r['total_horas'] ? h(substr((string) $r['total_horas'], 0, 5)) : '-' ?></td>
-                        <td>
+                        <td class="col-estado">
                             <?php if ($r['estado'] === 'OK'): ?>
                                 <span class="badge badge-ok">OK</span>
                             <?php elseif ($r['estado'] === 'OBSERVADO'): ?>
@@ -121,16 +119,14 @@ $urlEstado = static function (string $estado) use ($periodo) {
                                 <span class="badge badge-err">ERROR</span>
                             <?php endif; ?>
                         </td>
-                        <td><?= nl2br(h($r['observacion'])) ?></td>
-                        <td>
+                        <td class="col-obs">
+                            <span class="obs-text"><?= nl2br(h($r['observacion'])) ?></span>
                             <?php if ((int) $r['editado_manual'] === 1): ?>
-                                <span class="small">Sí<br><?= h(date('d/m H:i', strtotime($r['updated_at']))) ?></span>
-                            <?php else: ?>
-                                <span class="small">No</span>
+                                <span class="obs-editada">Editado <?= h(date('d/m H:i', strtotime($r['updated_at']))) ?></span>
                             <?php endif; ?>
                         </td>
-                        <td>
-                            <a class="btn-editar" href="<?= base_url('/marcacion/editar?id=' . (int) $r['id']) ?>">Editar</a>
+                        <td class="col-accion">
+                            <a class="obs-btn-edit" href="<?= base_url('/marcacion/editar?id=' . (int) $r['id']) ?>"><i class="bi bi-pencil-square"></i> Editar</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
