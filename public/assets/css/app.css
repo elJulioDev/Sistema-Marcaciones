@@ -1366,8 +1366,8 @@ tr:last-child td { border-bottom: none; }
 
 /* ── Export dropdown ────────────────────────────────────────── */
 .cal-body .exp-dd { position: relative; }
-.cal-body .exp-toggle { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: var(--s2); border: 1px solid var(--b0); color: var(--t2); cursor: pointer; transition: .15s; }
-.cal-body .exp-toggle:hover { background: var(--s3); color: var(--t1); }
+.cal-body .exp-toggle { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: var(--grn); border: 1px solid var(--b0); color: #fff; cursor: pointer; transition: .15s; }
+.cal-body .exp-toggle:hover { background: color-mix(in srgb, var(--grn) 85%, #000); color: #fff; }
 .cal-body .exp-menu { display: none; position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: var(--s1); border: 1px solid var(--b0); border-radius: var(--r2); box-shadow: var(--shadow-lg); z-index: 100; padding: 4px; }
 .cal-body .exp-menu.open { display: block; }
 .cal-body .exp-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: none; background: none; border-radius: 5px; font-size: 12px; font-weight: 500; color: var(--t2); cursor: pointer; transition: .1s; text-align: left; font-family: var(--font); }
