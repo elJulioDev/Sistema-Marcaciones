@@ -138,61 +138,60 @@
 }
 
 [data-theme="dark"] {
-    --color-primary: #818cf8;
-    --color-primary-dark: #6366f1;
-    --color-primary-light: #a5b4fc;
-    --color-primary-rgb: 129, 140, 248;
-    --color-primary-bg: rgba(var(--color-primary-rgb), .15);
-    --color-primary-bg-strong: rgba(var(--color-primary-rgb), .24);
+    --color-primary: #60a5fa;
+    --color-primary-dark: #3b82f6;
+    --color-primary-light: #93c5fd;
+    --color-primary-rgb: 96, 165, 250;
+    --color-primary-bg: rgba(var(--color-primary-rgb), .12);
+    --color-primary-bg-strong: rgba(var(--color-primary-rgb), .20);
 
     --color-accent: #a78bfa;
     --color-accent-rgb: 167, 139, 250;
-    --color-accent-soft: rgba(var(--color-accent-rgb), .16);
+    --color-accent-soft: rgba(var(--color-accent-rgb), .14);
 
-    --color-bg: #0a0e15;
-    --color-surface: #151d2c;
-    --color-surface-2: #0e1626;
-    --color-surface-3: #1b2740;
-    --color-surface-hover: #22304c;
-    --color-card-header-bg: #1b2537;
+    --color-bg: #111111;
+    --color-surface: #1a1a1a;
+    --color-surface-2: #141414;
+    --color-surface-3: #222222;
+    --color-surface-hover: #2a2a2a;
+    --color-card-header-bg: #1f1f1f;
 
-    --color-text: #eceff5;
-    --color-text-muted: #a7b2c6;
-    --color-text-soft: #64748b;
+    --color-text: #e4e4e7;
+    --color-text-muted: #a1a1aa;
+    --color-text-soft: #71717a;
 
-    --color-border: #24304a;
-    --color-border-strong: #3b485e;
+    --color-border: #27272a;
+    --color-border-strong: #3f3f46;
 
-    --color-success: #5ee8a6;
-    --color-success-bg: rgba(16, 185, 129, .16);
-    --color-warning: #fbbf24;
-    --color-warning-bg: rgba(245, 158, 11, .16);
+    --color-success: #4ade80;
+    --color-success-bg: rgba(34, 197, 94, .14);
+    --color-warning: #facc15;
+    --color-warning-bg: rgba(234, 179, 8, .14);
     --color-danger: #f87171;
-    --color-danger-bg: rgba(239, 68, 68, .16);
-    --color-info: #8fd8ff;
-    --color-info-bg: rgba(14, 165, 233, .16);
+    --color-danger-bg: rgba(239, 68, 68, .14);
+    --color-info: #7dd3fc;
+    --color-info-bg: rgba(56, 189, 248, .14);
 
-    /* Sidebar ligeramente más claro que el fondo del contenido: se distingue como panel */
-    --sidebar-bg: #101623;
-    --sidebar-text: #e9edf5;
-    --sidebar-muted: #9fabc1;
-    --sidebar-border: #212c3e;
-    --sidebar-hover: rgba(255, 255, 255, .07);
-    --sidebar-active-bg: rgba(var(--color-primary-rgb), .20);
+    --sidebar-bg: #0a0a0a;
+    --sidebar-text: #e4e4e7;
+    --sidebar-muted: #a1a1aa;
+    --sidebar-border: #27272a;
+    --sidebar-hover: rgba(255, 255, 255, .06);
+    --sidebar-active-bg: rgba(var(--color-primary-rgb), .18);
     --sidebar-active-text: #ffffff;
-    --sidebar-shadow: 2px 0 20px rgba(0, 0, 0, .4);
+    --sidebar-shadow: 2px 0 20px rgba(0, 0, 0, .5);
 
     --radius-sm: 6px;
     --radius: 10px;
     --radius-lg: 14px;
     --radius-pill: 50px;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
-    --shadow: 0 1px 3px rgba(0, 0, 0, .5);
-    --shadow-lg: 0 12px 32px rgba(0, 0, 0, .65);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
+    --shadow: 0 1px 3px rgba(0, 0, 0, .6);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, .7);
 
-    --table-header-bg: #1c2434;
-    --table-stripe-bg: rgba(255, 255, 255, .025);
-    --table-hover-bg: rgba(255, 255, 255, .06);
+    --table-header-bg: #1f1f1f;
+    --table-stripe-bg: rgba(255, 255, 255, .02);
+    --table-hover-bg: rgba(255, 255, 255, .05);
 
     --bs-primary-rgb: var(--color-primary-rgb);
     --bs-body-bg: var(--color-bg);
